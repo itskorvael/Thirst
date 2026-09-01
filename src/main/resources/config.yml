@@ -102,6 +102,11 @@ thirst:
   # 0.75 ≈ sprint no faster than a walk; lower = sprinting is slower than
   # walking. Range 0.1–1.0 (1.0 disables the effect).
   critical-sprint-speed-multiplier: 0.75
+  # The sprint-jump boost is a separate flat velocity kick, so the multiplier
+  # above doesn't touch it. While sprinting AND critical, horizontal air speed
+  # is clamped to this (blocks/tick) just after a jump — 0.22 ≈ a walking jump,
+  # so a sprint-jump gains no distance. Raise toward 0.3 to allow some hop.
+  critical-jump-horizontal-cap: 0.22
 
   # Damage taken while at 0 thirst.
   starvation-damage-enabled: true

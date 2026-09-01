@@ -69,7 +69,7 @@ public final class ThirstPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
                 new ThirstExhaustionListener(thirstManager, this::config), this);
         getServer().getPluginManager().registerEvents(
-                new ThirstSprintListener(thirstManager, this::config, speedModifier), this);
+                new ThirstSprintListener(this, thirstManager, this::config, speedModifier), this);
 
         this.tickTask = new ThirstTickTask(this, thirstManager, this::config);
         this.tickTask.start();

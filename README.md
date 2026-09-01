@@ -72,14 +72,19 @@ built-in default instead of breaking gameplay.
   knob.
 - **Respawn refills thirst to full** and clears exhaustion + illness, matching
   vanilla hunger resetting on death.
-- **Sprint speed bonus neutralised at/below the critical threshold**
-  (`disable-sprint-when-critical`, default on). `CriticalSpeedModifier` adds a
-  transient negative `MOVEMENT_SPEED` modifier while the player is *both*
-  critical and sprinting, cancelling the ~30% boost
-  (`critical-sprint-speed-multiplier`, default 0.75 ≈ walking pace). Removed the
-  instant either condition stops — walking is never slowed. Cancelling
-  `PlayerToggleSprintEvent` was tried first and does nothing: the client, not
-  the server, decides whether to sprint (it checks its own food level > 6).
+- **Sprinting made pointless at/below the critical threshold**
+  (`disable-sprint-when-critical`, default on), since a true "can't sprint"
+  isn't reachable from the server — the client owns that decision (it checks its
+  own food level > 6; cancelling `PlayerToggleSprintEvent` does nothing). Two
+  parts:
+  - *Speed:* `CriticalSpeedModifier` adds a transient negative `MOVEMENT_SPEED`
+    modifier while the player is both critical and sprinting, cancelling the
+    ~30% boost (`critical-sprint-speed-multiplier`, default 0.75 ≈ walking).
+    Removed the instant either condition stops — walking is never slowed.
+  - *Jump:* the sprint-jump boost is a separate flat velocity kick the attribute
+    can't reach, so `ThirstSprintListener` clamps horizontal air speed to
+    `critical-jump-horizontal-cap` (default 0.22 ≈ a walking jump) on the tick
+    after a sprint-jump.
 - **Folia is not supported** (uses the Bukkit scheduler).
 - `/thirst` is a minimal debug command this phase; Phase 7 owns the real one.
 
