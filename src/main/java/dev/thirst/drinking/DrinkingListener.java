@@ -65,7 +65,10 @@ public final class DrinkingListener implements Listener {
 
     // ── Filling ─────────────────────────────────────────────────────────────
 
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    // Not ignoreCancelled: vanilla marks the interact "denied" when it can't
+    // fill a bottle (i.e. aimed at flowing water, not a source), which is
+    // exactly the case we want to handle.
+    @EventHandler(priority = EventPriority.LOW)
     public void onInteract(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
             return;
