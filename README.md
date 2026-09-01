@@ -124,7 +124,7 @@ For RealisticSeasons:
        enabled: true
        placeholder: "%rs_temperaturecolor%%rs_temperature%"
        place-before: true
-       separator: " <dark_gray>|</dark_gray> "
+       separator: " <white>|</white> "
    ```
 3. `/thirst reload`.
 

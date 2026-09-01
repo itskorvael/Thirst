@@ -60,7 +60,7 @@ hud:
     # false -> "[||||||----] | <external>"
     place-before: true
     # MiniMessage, shown between the external text and the thirst bar.
-    separator: " <dark_gray>|</dark_gray> "
+    separator: " <white>|</white> "
   # Default duration (ms) used when another plugin calls
   # ThirstHudTask#requestActionBarYield(player) with no explicit duration.
   #

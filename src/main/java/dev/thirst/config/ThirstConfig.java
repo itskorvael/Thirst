@@ -168,7 +168,7 @@ public record ThirstConfig(
                 externalSec.getBoolean("enabled", false),
                 externalSec.getString("placeholder", ""),
                 externalSec.getBoolean("place-before", true),
-                externalSec.getString("separator", " <dark_gray>|</dark_gray> ")
+                externalSec.getString("separator", " <white>|</white> ")
         );
         Hud hud = new Hud(
                 hudSec.getInt("update-interval-ticks", 30, 1, 200),
