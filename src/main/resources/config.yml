@@ -75,9 +75,20 @@ hud:
 
 # ─── Water quality ────────────────────────────────────────────────────────────
 # Quality of any chunk an admin has not explicitly painted. CLEAN | DIRTY
+# Per-chunk overrides are stored in water_quality.db (SQLite) in the plugin
+# folder, loaded into memory on startup and written back asynchronously.
+#
+# Commands (permission thirst.admin.water):
+#   /water get                                  quality of the chunk you're in
+#   /water setchunk <clean|dirty>               paint the chunk you're standing in
+#   /water setregion <clean|dirty> <x1> <z1> <x2> <z2> [world]
+#                                               bulk-paint a block-coord rectangle
 default-water-quality: DIRTY
 
 water:
+  # Safety cap on /water setregion — the command is rejected if the rectangle
+  # covers more chunk columns than this.
+  max-region-chunks: 50000
   # Chunk-outline particle preview shown while using the water-quality wand
   # (optional feature, later phase).
   wand-enabled: true

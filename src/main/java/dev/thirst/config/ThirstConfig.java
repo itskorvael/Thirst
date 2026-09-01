@@ -25,7 +25,7 @@ public record ThirstConfig(
         String resourcePackUrl,
         Hud hud,
         WaterQuality defaultWaterQuality,
-        Wand wand,
+        Water water,
         Thirst thirst,
         Drinking drinking,
         Salmonella salmonella
@@ -61,8 +61,11 @@ public record ThirstConfig(
             String separator
     ) {}
 
-    /** Optional water-quality wand tool. */
-    public record Wand(boolean enabled, String material) {}
+    /**
+     * The {@code water:} section — the {@code /water setregion} safety cap and
+     * the (later-phase) water-quality wand tool.
+     */
+    public record Water(int maxRegionChunks, boolean wandEnabled, String wandMaterial) {}
 
     /** Core thirst drain / damage numbers. */
     public record Thirst(
@@ -185,7 +188,8 @@ public record ThirstConfig(
                 root.getEnum("default-water-quality", WaterQuality.DIRTY, WaterQuality::parse);
 
         Reader waterSec = root.section("water");
-        Wand wand = new Wand(
+        Water water = new Water(
+                waterSec.getInt("max-region-chunks", 50_000, 1, 10_000_000),
                 waterSec.getBoolean("wand-enabled", true),
                 waterSec.getNonBlankString("wand-material", "BLAZE_ROD")
         );
@@ -239,7 +243,7 @@ public record ThirstConfig(
 
         return new ThirstConfig(
                 configVersion, hudMode, overwrite, packUrl, hud,
-                defaultQuality, wand, thirst, drinking, salmonella
+                defaultQuality, water, thirst, drinking, salmonella
         );
     }
 

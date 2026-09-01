@@ -1,6 +1,7 @@
 package dev.thirst;
 
 import dev.thirst.command.ThirstCommand;
+import dev.thirst.command.WaterCommand;
 import dev.thirst.config.ThirstConfig;
 import dev.thirst.hud.ThirstHudTask;
 import dev.thirst.integration.ActionBarSegment;
@@ -12,9 +13,13 @@ import dev.thirst.thirst.CriticalSpeedModifier;
 import dev.thirst.thirst.ThirstKeys;
 import dev.thirst.thirst.ThirstManager;
 import dev.thirst.thirst.ThirstTickTask;
+import dev.thirst.water.WaterQualityService;
+import dev.thirst.water.WaterQualityStore;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -29,9 +34,10 @@ import org.jspecify.annotations.Nullable;
  *       debug command</li>
  *   <li>Phase 3 — the HUD ({@link ThirstHudTask}): action-bar text, or a boss
  *       bar in debug/fallback mode</li>
+ *   <li>Phase 4 — per-chunk water quality ({@link WaterQualityService} over
+ *       {@link WaterQualityStore} SQLite) and the {@code /water} commands</li>
  * </ol>
- * Still to come: water quality (4), drinking (5), Salmonella (6),
- * full commands (7).
+ * Still to come: drinking (5), Salmonella (6), full commands (7).
  */
 @NullMarked
 public final class ThirstPlugin extends JavaPlugin {
@@ -43,6 +49,8 @@ public final class ThirstPlugin extends JavaPlugin {
     private @Nullable ThirstHudTask hudTask;
     private @Nullable CriticalSpeedModifier speedModifier;
     private @Nullable ActionBarSegment externalSegment;
+    private @Nullable WaterQualityStore waterStore;
+    private @Nullable WaterQualityService waterQuality;
 
     /** Tracks the last-seen PlaceholderAPI availability so transitions are logged once. */
     private boolean placeholderApiActive;
@@ -51,6 +59,13 @@ public final class ThirstPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         loadPluginConfig();
+
+        File databaseFile = new File(getDataFolder(), "water_quality.db");
+        this.waterStore = new WaterQualityStore("jdbc:sqlite:" + databaseFile.getAbsolutePath(), getLogger());
+        this.waterStore.initialize();
+        this.waterQuality = new WaterQualityService(waterStore, this::config);
+        this.waterQuality.load();
+        getLogger().info(() -> "Loaded water quality for " + waterQuality.cachedChunkCount() + " chunk(s).");
 
         ThirstKeys keys = new ThirstKeys(this);
         this.thirstManager = new ThirstManager(keys, this::config);
@@ -75,8 +90,10 @@ public final class ThirstPlugin extends JavaPlugin {
         this.tickTask.start();
         this.hudTask.start();
 
-        getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
-                event.registrar().register(ThirstCommand.build(this), "Thirst admin / debug commands"));
+        getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
+            event.registrar().register(ThirstCommand.build(this), "Thirst admin / debug commands");
+            event.registrar().register(WaterCommand.build(this), "Per-chunk water quality");
+        });
 
         getLogger().info(() -> "Thirst v" + getPluginMeta().getVersion()
                 + " enabled — HUD mode " + config.hudMode()
@@ -107,6 +124,11 @@ public final class ThirstPlugin extends JavaPlugin {
             }
             speedModifier = null;
         }
+        if (waterStore != null) {
+            waterStore.close();
+            waterStore = null;
+        }
+        waterQuality = null;
         getLogger().info("Thirst disabled.");
     }
 
@@ -116,6 +138,17 @@ public final class ThirstPlugin extends JavaPlugin {
      */
     public ThirstConfig config() {
         return config;
+    }
+
+    /**
+     * The per-chunk water quality cache / API. Never {@code null} while enabled.
+     */
+    public WaterQualityService water() {
+        WaterQualityService service = this.waterQuality;
+        if (service == null) {
+            throw new IllegalStateException("WaterQualityService accessed before enable / after disable");
+        }
+        return service;
     }
 
     /**

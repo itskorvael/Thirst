@@ -43,7 +43,9 @@ Built in phases; see the checklist below.
   `BOSSBAR` debug/fallback mode, pluggable `HudRenderer` strategy for the future
   resource-pack mode, `ThirstHudFormatter` pure functions + unit tests, optional
   PlaceholderAPI `hud.external-segment` (share the action bar with RealisticSeasons)
-- [ ] Phase 4 — per-chunk water quality (SQLite schema, async load/save, cache, `/water`)
+- [x] **Phase 4** — per-chunk water quality: SQLite store (async, single-thread
+  connection), in-memory `Map<ChunkKey, WaterQuality>` cache with write-through,
+  `/water get|setchunk|setregion`, unit + in-memory-SQLite tests
 - [ ] Phase 5 — bottle-based drinking (fill at a source → Clean/Dirty Water bottle → drink)
 - [ ] Phase 6 — Salmonella stacks, effects, decay, cure
 - [ ] Phase 7 — `/thirst` commands, permissions, config validation, `/thirst reload`
@@ -110,6 +112,32 @@ built-in default instead of breaking gameplay.
      .requestActionBarYield(player[, millis])` before its own send.
   3. If Thirst is the only action-bar user (common), set
      `actionbar-overwrite-others: true`.
+
+### Phase 4 design notes (for review)
+
+- **Storage:** SQLite (`water_quality.db` in the plugin folder), table
+  `chunk_water_quality (world_name, chunk_x, chunk_z, quality)` with a
+  `CHECK (quality IN ('CLEAN','DIRTY'))`.
+- **Threading:** one dedicated daemon thread owns a single JDBC connection
+  (`SQLiteDataSource`, WAL, `synchronous=NORMAL`). Callers get
+  `CompletableFuture`s; the main thread never blocks on the DB *except* the
+  one-time `initialize()` + `loadAll()` at enable.
+- **Cache:** the whole table is read into a `ConcurrentHashMap<ChunkKey,
+  WaterQuality>` on enable (not lazy per-chunk, not per-`WorldLoadEvent` — a
+  single server's DB is small and this is simpler; a world added later still has
+  its rows because nothing filters by loaded worlds). Reads fall back to
+  `default-water-quality`. Writes hit the cache immediately and the DB async, so
+  a drink right after `/water setchunk` sees the new value.
+- **`/water setregion`** takes two **block**-coordinate corners (what admins
+  read off F3), converts to a chunk rectangle, and writes it in one transaction.
+  Guarded by `water.max-region-chunks` (default 50 000).
+- **`/water set <clean|dirty> [radius]` from the original spec is dropped** in
+  favour of `setchunk` (per an earlier maintainer decision).
+- `ChunkKey` / `ChunkArea` conversions are pure and unit-tested; the store is
+  tested against an in-memory SQLite DB.
+- On Java 25, sqlite-jdbc loading its native library prints a one-line
+  `WARNING: ... native access ...` to the console on first DB use. Cosmetic —
+  it's the JDK's new native-access notice, not an error.
 
 ### Sharing the action bar with RealisticSeasons (or any plugin)
 
