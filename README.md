@@ -35,7 +35,9 @@ Paper's shared library cache at load time.
 Built in phases; see the checklist below.
 
 - [x] **Phase 1** — project skeleton, `paper-plugin.yml`, config load + validation
-- [ ] Phase 2 — thirst core (`ThirstManager`, drain + exhaustion task, starvation damage)
+- [x] **Phase 2** — thirst core: `ThirstManager` (PDC-backed), exhaustion listeners,
+  per-second drain + starvation task, `ThirstMath` pure functions + unit tests,
+  minimal `/thirst get|set|reload`
 - [ ] Phase 3 — action-bar HUD
 - [ ] Phase 4 — per-chunk water quality (SQLite schema, async load/save, cache, `/water`)
 - [ ] Phase 5 — bottle-based drinking (fill at a source → Clean/Dirty Water bottle → drink)
@@ -48,6 +50,26 @@ Built in phases; see the checklist below.
 All gameplay numbers live in `config.yml` (copied to the data folder on first
 run). Nothing is hardcoded. Invalid values log a warning and fall back to the
 built-in default instead of breaking gameplay.
+
+### Phase 2 design notes (for review)
+
+- **Passive drain is folded into the exhaustion bucket.** Idle time adds
+  `exhaustion-threshold / base-drain-interval-seconds` per second, so "1 point
+  per N minutes idle" and the exertion multipliers share one code path.
+- **Tick cadence: 1 second** (20 ticks). Starvation timing is counted in whole
+  seconds from this loop.
+- **Exhaustion is flushed to the PDC once per second**, not on every move event,
+  to keep `PlayerMoveEvent` cheap. Level changes write through immediately.
+- **`thirst_exhaustion` is stored as a PDC `double`** (the spec said "float" —
+  double chosen for headroom; the size difference is 4 bytes/player).
+- **Exempt players:** Creative + Spectator (like vanilla hunger). Starvation
+  damage is additionally skipped on Peaceful difficulty. Difficulty-scaled
+  health floors are *not* mirrored — `starvation-minimum-health` is the single
+  knob.
+- **Respawn refills thirst to full** and clears exhaustion + illness, matching
+  vanilla hunger resetting on death.
+- **Folia is not supported** (uses the Bukkit scheduler).
+- `/thirst` is a minimal debug command this phase; Phase 7 owns the real one.
 
 ### Open questions (defaults chosen, pending review)
 

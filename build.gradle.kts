@@ -21,6 +21,10 @@ dependencies {
     // Not shaded: it is pulled in at runtime by ThirstPluginLoader via Paper's
     // library loader, so it stays compileOnly here.
     compileOnly("org.xerial:sqlite-jdbc:3.53.4.0")
+
+    testImplementation(platform("org.junit:junit-bom:6.1.3"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 java {
@@ -42,6 +46,13 @@ tasks.processResources {
     inputs.properties(props)
     filesMatching("paper-plugin.yml") {
         expand(props)
+    }
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
     }
 }
 

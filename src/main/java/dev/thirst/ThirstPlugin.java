@@ -1,36 +1,62 @@
 package dev.thirst;
 
+import dev.thirst.command.ThirstCommand;
 import dev.thirst.config.ThirstConfig;
+import dev.thirst.listener.ThirstExhaustionListener;
+import dev.thirst.listener.ThirstLifecycleListener;
+import dev.thirst.thirst.ThirstKeys;
+import dev.thirst.thirst.ThirstManager;
+import dev.thirst.thirst.ThirstTickTask;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Entry point for the Thirst plugin.
  *
- * <p>Phase 1 wires up only configuration loading and the plugin lifecycle.
- * Managers, listeners and scheduled tasks are added in later phases:
+ * <p>Wired up so far:
  * <ol>
- *   <li>Phase 2 — thirst core ({@code ThirstManager}, drain + exhaustion task)</li>
- *   <li>Phase 3 — action-bar HUD</li>
- *   <li>Phase 4 — per-chunk water quality (SQLite + cache)</li>
- *   <li>Phase 5 — bottle-based drinking</li>
- *   <li>Phase 6 — Salmonella</li>
- *   <li>Phase 7 — commands, permissions, {@code /thirst reload}</li>
+ *   <li>Phase 1 — configuration loading + validation</li>
+ *   <li>Phase 2 — thirst core: {@link ThirstManager}, exhaustion listeners,
+ *       the per-second drain / starvation task, and a minimal {@code /thirst}
+ *       debug command</li>
  * </ol>
+ * Still to come: HUD (3), water quality (4), drinking (5), Salmonella (6),
+ * full commands (7).
  */
 @NullMarked
 public final class ThirstPlugin extends JavaPlugin {
 
-    /**
-     * Current configuration snapshot. Replaced wholesale on reload; reads are
-     * lock-free. Never {@code null} once {@link #onEnable()} has run.
-     */
     private volatile ThirstConfig config;
+
+    private @Nullable ThirstManager thirstManager;
+    private @Nullable ThirstTickTask tickTask;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         loadPluginConfig();
+
+        ThirstKeys keys = new ThirstKeys(this);
+        this.thirstManager = new ThirstManager(keys, this::config);
+
+        // Pick up anyone already online (e.g. plugin reloaded on a live server).
+        for (Player player : getServer().getOnlinePlayers()) {
+            thirstManager.load(player);
+        }
+
+        getServer().getPluginManager().registerEvents(
+                new ThirstLifecycleListener(thirstManager), this);
+        getServer().getPluginManager().registerEvents(
+                new ThirstExhaustionListener(thirstManager, this::config), this);
+
+        this.tickTask = new ThirstTickTask(this, thirstManager, this::config);
+        this.tickTask.start();
+
+        getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
+                event.registrar().register(ThirstCommand.build(this), "Thirst admin / debug commands"));
 
         getLogger().info(() -> "Thirst v" + getPluginMeta().getVersion()
                 + " enabled — HUD mode " + config.hudMode()
@@ -39,23 +65,40 @@ public final class ThirstPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (tickTask != null) {
+            tickTask.stop();
+            tickTask = null;
+        }
+        if (thirstManager != null) {
+            for (Player player : getServer().getOnlinePlayers()) {
+                thirstManager.unload(player);
+            }
+            thirstManager = null;
+        }
         getLogger().info("Thirst disabled.");
     }
 
     /**
-     * The live configuration snapshot. Safe to call from any thread; callers
-     * should re-fetch rather than cache the reference so {@code /thirst reload}
-     * takes effect.
-     *
-     * @return the current, validated configuration
+     * The live configuration snapshot. Safe from any thread; re-fetch rather than
+     * cache so {@code /thirst reload} takes effect.
      */
     public ThirstConfig config() {
         return config;
     }
 
     /**
-     * Re-reads {@code config.yml} from disk and swaps in a fresh validated
-     * snapshot. Invoked once on enable and again by {@code /thirst reload}.
+     * The thirst state manager. Never {@code null} while the plugin is enabled.
+     */
+    public ThirstManager thirst() {
+        ThirstManager manager = this.thirstManager;
+        if (manager == null) {
+            throw new IllegalStateException("ThirstManager accessed before enable / after disable");
+        }
+        return manager;
+    }
+
+    /**
+     * Re-reads {@code config.yml} and swaps in a fresh validated snapshot.
      */
     public void loadPluginConfig() {
         reloadConfig();
