@@ -65,7 +65,6 @@ public final class ThirstTickTask implements Runnable {
 
     private void tick(Player player, ThirstConfig cfg) {
         if (!ThirstRules.affected(player)) {
-            ThirstVignette.clear(player, manager.state(player));
             manager.flush(player);
             return;
         }
@@ -88,7 +87,6 @@ public final class ThirstTickTask implements Runnable {
         }
 
         applyStarvation(player, state, t);
-        ThirstVignette.update(player, state, t);
 
         manager.flush(player);
     }

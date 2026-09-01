@@ -60,22 +60,8 @@ thirst:
   # Seconds of pure idle time to lose 1 thirst point with zero exhaustion.
   base-drain-interval-seconds: 120
 
-  # Below this % of max, the HUD turns red (see hud.color-critical) and, if
-  # enabled below, the low-thirst screen vignette turns on.
+  # Below this % of max, the HUD turns red (see hud.color-critical).
   critical-threshold-percent: 10
-
-  # Translucent red tint at the edge of the screen while thirst is at/below
-  # critical-threshold-percent. No resource pack involved: it's a per-player
-  # "ghost" world border that always follows the player, using the vanilla
-  # client's own red border-warning tint. Purely cosmetic — it never deals
-  # border damage, and whatever border the player already had (from another
-  # plugin, or none) is restored once thirst rises back above critical.
-  low-thirst-vignette-enabled: true
-  # Distance (blocks) from the player to the ghost border. Larger = fainter and
-  # the wall itself stays further out of view; smaller = a tighter, more
-  # intense red frame. The exact look is a client rendering detail, so treat
-  # this as a starting point and eyeball it in-game.
-  low-thirst-vignette-radius: 24.0
 
   # Damage taken while at 0 thirst.
   starvation-damage-enabled: true

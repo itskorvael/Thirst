@@ -54,14 +54,9 @@ public record ThirstConfig(
             int starvationDamageIntervalSeconds,
             double starvationMinimumHealth,
             double exhaustionThreshold,
-            boolean lowThirstVignetteEnabled,
-            double lowThirstVignetteRadius,
             Exhaustion exhaustion
     ) {
-        /**
-         * Absolute thirst value at or below which the HUD switches to the
-         * critical colour and the low-thirst screen vignette turns on.
-         */
+        /** Absolute thirst value at or below which the HUD switches to the critical colour. */
         public double criticalLevel() {
             return max * (criticalThresholdPercent / 100.0);
         }
@@ -183,8 +178,6 @@ public record ThirstConfig(
                 thirstSec.getInt("starvation-damage-interval-seconds", 4, 1, 3600),
                 thirstSec.getDouble("starvation-minimum-health", 1.0, 0.0, 1024.0),
                 thirstSec.getDouble("exhaustion-threshold", 4.0, 0.01, 1000.0),
-                thirstSec.getBoolean("low-thirst-vignette-enabled", true),
-                thirstSec.getDouble("low-thirst-vignette-radius", 24.0, 1.0, 512.0),
                 exhaustion
         );
 
