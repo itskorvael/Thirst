@@ -107,16 +107,16 @@ public record ThirstConfig(
     /** Bottle-based drinking and the optional rain trickle. */
     public record Drinking(
             int cooldownTicks,
-            int cleanWaterRestoreAmount,
+            int freshWaterRestoreAmount,
             int dirtyWaterRestoreAmount,
             double salmonellaChance,
-            boolean rainCauldronAlwaysClean,
+            boolean rainCauldronAlwaysFresh,
             boolean rainTrickleEnabled,
             int rainTrickleAmount,
             int rainTrickleIntervalSeconds
     ) {
         public int restoreFor(WaterQuality quality) {
-            return quality == WaterQuality.CLEAN ? cleanWaterRestoreAmount : dirtyWaterRestoreAmount;
+            return quality == WaterQuality.FRESH ? freshWaterRestoreAmount : dirtyWaterRestoreAmount;
         }
     }
 
@@ -225,10 +225,10 @@ public record ThirstConfig(
         Reader drinkSec = root.section("drinking");
         Drinking drinking = new Drinking(
                 drinkSec.getInt("cooldown-ticks", 40, 0, 72_000),
-                drinkSec.getInt("clean-water-restore-amount", 4, 0, max),
+                drinkSec.getInt("fresh-water-restore-amount", 4, 0, max),
                 drinkSec.getInt("dirty-water-restore-amount", 2, 0, max),
                 drinkSec.getDouble("salmonella-chance", 0.35, 0.0, 1.0),
-                drinkSec.getBoolean("rain-cauldron-always-clean", true),
+                drinkSec.getBoolean("rain-cauldron-always-fresh", true),
                 drinkSec.getBoolean("rain-trickle-enabled", false),
                 drinkSec.getInt("rain-trickle-amount", 1, 0, max),
                 drinkSec.getInt("rain-trickle-interval-seconds", 20, 1, 3600)

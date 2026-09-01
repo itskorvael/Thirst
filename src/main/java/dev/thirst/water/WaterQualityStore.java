@@ -34,7 +34,7 @@ public final class WaterQualityStore {
                 world_name TEXT    NOT NULL,
                 chunk_x    INTEGER NOT NULL,
                 chunk_z    INTEGER NOT NULL,
-                quality    TEXT    NOT NULL CHECK (quality IN ('CLEAN', 'DIRTY')),
+                quality    TEXT    NOT NULL CHECK (quality IN ('FRESH', 'DIRTY')),
                 PRIMARY KEY (world_name, chunk_x, chunk_z)
             )
             """;
@@ -78,8 +78,50 @@ public final class WaterQualityStore {
             try (Statement statement = conn.createStatement()) {
                 statement.execute(CREATE_TABLE);
             }
+            migrateLegacyCleanQuality(conn);
             this.connection = conn;
         }).join();
+    }
+
+    /**
+     * Older builds stored the "safe" quality as {@code CLEAN} with a matching
+     * {@code CHECK} constraint. Rebuild such a table so {@code CLEAN} becomes
+     * {@code FRESH} and the constraint allows it. No-op on fresh or already-
+     * migrated databases.
+     */
+    private void migrateLegacyCleanQuality(Connection conn) throws SQLException {
+        String tableSql = null;
+        try (Statement statement = conn.createStatement();
+             ResultSet rs = statement.executeQuery(
+                     "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'chunk_water_quality'")) {
+            if (rs.next()) {
+                tableSql = rs.getString(1);
+            }
+        }
+        if (tableSql == null || !tableSql.contains("'CLEAN'")) {
+            return;
+        }
+
+        boolean autoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try (Statement statement = conn.createStatement()) {
+            statement.execute("ALTER TABLE chunk_water_quality RENAME TO chunk_water_quality_legacy");
+            statement.execute(CREATE_TABLE);
+            statement.execute("""
+                    INSERT INTO chunk_water_quality (world_name, chunk_x, chunk_z, quality)
+                    SELECT world_name, chunk_x, chunk_z,
+                           CASE quality WHEN 'CLEAN' THEN 'FRESH' ELSE quality END
+                    FROM chunk_water_quality_legacy
+                    """);
+            statement.execute("DROP TABLE chunk_water_quality_legacy");
+            conn.commit();
+            logger.info("Migrated water-quality database: CLEAN -> FRESH");
+        } catch (SQLException ex) {
+            conn.rollback();
+            throw ex;
+        } finally {
+            conn.setAutoCommit(autoCommit);
+        }
     }
 
     /** Reads every stored chunk into a fresh map. Blocks; call once on enable. */

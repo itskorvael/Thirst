@@ -2,7 +2,7 @@
 
 A Paper plugin that adds a thirst mechanic alongside vanilla hunger: a HUD
 indicator above the hotbar, exertion-based drain with starvation damage at zero,
-bottle-based drinking, per-chunk water quality (CLEAN / DIRTY), and a stacking
+bottle-based drinking, per-chunk water quality (FRESH / DIRTY), and a stacking
 dirty-water illness (Salmonella).
 
 ## Requirements
@@ -46,7 +46,7 @@ Built in phases; see the checklist below.
 - [x] **Phase 4** — per-chunk water quality: SQLite store (async, single-thread
   connection), in-memory `Map<ChunkKey, WaterQuality>` cache with write-through,
   `/water get|setchunk|setregion`, unit + in-memory-SQLite tests
-- [ ] Phase 5 — bottle-based drinking (fill at a source → Clean/Dirty Water bottle → drink)
+- [ ] Phase 5 — bottle-based drinking (fill at a source → Fresh/Dirty Water bottle → drink)
 - [ ] Phase 6 — Salmonella stacks, effects, decay, cure
 - [ ] Phase 7 — `/thirst` commands, permissions, config validation, `/thirst reload`
 - [ ] Phase 8 — HUD v2 (resource-pack droplet glyphs), optional
@@ -117,7 +117,8 @@ built-in default instead of breaking gameplay.
 
 - **Storage:** SQLite (`water_quality.db` in the plugin folder), table
   `chunk_water_quality (world_name, chunk_x, chunk_z, quality)` with a
-  `CHECK (quality IN ('CLEAN','DIRTY'))`.
+  `CHECK (quality IN ('FRESH','DIRTY'))`. A legacy DB that used `CLEAN` is
+  rebuilt to `FRESH` on startup (`WaterQualityStore#migrateLegacyCleanQuality`).
 - **Threading:** one dedicated daemon thread owns a single JDBC connection
   (`SQLiteDataSource`, WAL, `synchronous=NORMAL`). Callers get
   `CompletableFuture`s; the main thread never blocks on the DB *except* the
@@ -131,7 +132,7 @@ built-in default instead of breaking gameplay.
 - **`/water setregion`** takes two **block**-coordinate corners (what admins
   read off F3), converts to a chunk rectangle, and writes it in one transaction.
   Guarded by `water.max-region-chunks` (default 50 000).
-- **`/water set <clean|dirty> [radius]` from the original spec is dropped** in
+- **`/water set <fresh|dirty> [radius]` from the original spec is dropped** in
   favour of `setchunk` (per an earlier maintainer decision).
 - `ChunkKey` / `ChunkArea` conversions are pure and unit-tested; the store is
   tested against an in-memory SQLite DB.
@@ -179,19 +180,22 @@ string works here, not just RealisticSeasons'.
 2. **Hunger interaction** — thirst is fully independent of vanilla hunger for
    now (no salty-food drain multiplier).
 3. **Salmonella cure** — currently item-only (milk bucket). Time-based recovery
-   while hydrated on clean water is not implemented.
+   while hydrated on fresh water is not implemented.
 4. **Scale** — SQLite is assumed sufficient. Revisit if chunk counts reach the
    millions or multiple servers share the store.
 
 ### Spec changes (confirmed with maintainer)
 
 1. **Drinking is bottle-based only.** Fill an empty glass bottle at a water
-   source block (or water cauldron) to receive a *Bottle of Clean Water* or
+   source block (or water cauldron) to receive a *Bottle of Fresh Water* or
    *Bottle of Dirty Water*, tagged with the quality of the chunk it was filled
    in. There is no "drink straight from the block" interaction.
 
-2. **Water-quality command is `/water setchunk <clean|dirty>`** — it targets the
+2. **Water-quality command is `/water setchunk <fresh|dirty>`** — it targets the
    single chunk the player is currently standing in (no coordinates, no radius).
    `/water get` still reports the current chunk. `/water setregion ...` is kept
-   for bulk area painting. The spec's `/water set <clean|dirty> [radius]` form is
+   for bulk area painting. The spec's `/water set <fresh|dirty> [radius]` form is
    dropped in favour of `setchunk`.
+
+3. **`CLEAN` water quality is renamed `FRESH`** (config, commands, DB). `"clean"`
+   is still accepted as an input alias; existing databases are migrated on load.

@@ -74,14 +74,14 @@ hud:
   yield-window-millis: 3000
 
 # ─── Water quality ────────────────────────────────────────────────────────────
-# Quality of any chunk an admin has not explicitly painted. CLEAN | DIRTY
+# Quality of any chunk an admin has not explicitly painted. FRESH | DIRTY
 # Per-chunk overrides are stored in water_quality.db (SQLite) in the plugin
 # folder, loaded into memory on startup and written back asynchronously.
 #
 # Commands (permission thirst.admin.water):
 #   /water get                                  quality of the chunk you're in
-#   /water setchunk <clean|dirty>               paint the chunk you're standing in
-#   /water setregion <clean|dirty> <x1> <z1> <x2> <z2> [world]
+#   /water setchunk <fresh|dirty>               paint the chunk you're standing in
+#   /water setregion <fresh|dirty> <x1> <z1> <x2> <z2> [world]
 #                                               bulk-paint a block-coord rectangle
 default-water-quality: DIRTY
 
@@ -144,19 +144,19 @@ thirst:
 
 # ─── Drinking ─────────────────────────────────────────────────────────────────
 # Drinking is bottle-based only. Fill an empty glass bottle at a water source
-# block (or a water cauldron) to get a "Bottle of Clean Water" or "Bottle of
+# block (or a water cauldron) to get a "Bottle of Fresh Water" or "Bottle of
 # Dirty Water" — the bottle is tagged with the quality of the chunk it was
 # filled in. Drink that bottle later to restore thirst. There is no
 # drink-straight-from-the-block interaction.
 drinking:
   cooldown-ticks: 40
-  clean-water-restore-amount: 4
+  fresh-water-restore-amount: 4
   dirty-water-restore-amount: 2
   # Chance (0.0–1.0) that drinking a Dirty Water bottle causes / stacks Salmonella.
   salmonella-chance: 0.35
-  # Water drawn from a cauldron filled by rain is always CLEAN, regardless of the
+  # Water drawn from a cauldron filled by rain is always FRESH, regardless of the
   # chunk's quality flag.
-  rain-cauldron-always-clean: true
+  rain-cauldron-always-fresh: true
 
   # Optional stretch goal: standing in rain slowly restores thirst.
   rain-trickle-enabled: false
