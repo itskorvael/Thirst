@@ -274,10 +274,10 @@ public record ThirstConfig(
                 drinkSec.getBoolean("rain-trickle-enabled", false),
                 drinkSec.getInt("rain-trickle-amount", 1, 0, max),
                 drinkSec.getInt("rain-trickle-interval-seconds", 20, 1, 3600),
-                drinkSec.getNonBlankString("fresh-bottle-name", "<aqua>Bottle of Fresh Water"),
+                drinkSec.getNonBlankString("fresh-bottle-name", "<aqua>Bottle of Freshwater"),
                 drinkSec.getNonBlankString("neutral-bottle-name", "<gray>Bottle of Water"),
                 drinkSec.getNonBlankString("dirty-bottle-name", "<color:#8a7f4a>Bottle of Dirty Water"),
-                drinkSec.getNonBlankString("fresh-bucket-name", "<aqua>Bucket of Fresh Water"),
+                drinkSec.getNonBlankString("fresh-bucket-name", "<aqua>Bucket of Freshwater"),
                 drinkSec.getNonBlankString("neutral-bucket-name", "<gray>Bucket of Water"),
                 drinkSec.getNonBlankString("dirty-bucket-name", "<color:#8a7f4a>Bucket of Dirty Water")
         );

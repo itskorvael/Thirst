@@ -5,11 +5,13 @@ import dev.thirst.water.WaterQuality;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.UseCooldown;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
@@ -52,15 +54,14 @@ public final class WaterContainers {
     @SuppressWarnings("UnstableApiUsage")
     public ItemStack createBottle(WaterQuality quality) {
         ThirstConfig.Drinking drinking = config.get().drinking();
-        Component name = miniMessage.deserialize(drinking.bottleName(quality));
 
         ItemStack item = ItemStack.of(Material.POTION);
-        item.editMeta(PotionMeta.class, meta -> {
-            meta.setBasePotionType(PotionType.WATER);
-            meta.setColor(colourOf(quality));
-            meta.itemName(name);
-            meta.getPersistentDataContainer().set(qualityKey, PersistentDataType.STRING, quality.name());
-        });
+        PotionMeta meta = (PotionMeta) item.getItemMeta();
+        meta.setBasePotionType(PotionType.WATER);
+        meta.setColor(colourOf(quality));
+        applyName(meta, drinking.bottleName(quality));
+        meta.getPersistentDataContainer().set(qualityKey, PersistentDataType.STRING, quality.name());
+        item.setItemMeta(meta);
 
         int cooldownTicks = drinking.cooldownTicks();
         if (cooldownTicks > 0) {
@@ -73,14 +74,19 @@ public final class WaterContainers {
 
     /** A single water bucket of the given quality. */
     public ItemStack createBucket(WaterQuality quality) {
-        Component name = miniMessage.deserialize(config.get().drinking().bucketName(quality));
-
         ItemStack item = ItemStack.of(Material.WATER_BUCKET);
-        item.editMeta(meta -> {
-            meta.itemName(name);
-            meta.getPersistentDataContainer().set(qualityKey, PersistentDataType.STRING, quality.name());
-        });
+        ItemMeta meta = item.getItemMeta();
+        applyName(meta, config.get().drinking().bucketName(quality));
+        meta.getPersistentDataContainer().set(qualityKey, PersistentDataType.STRING, quality.name());
+        item.setItemMeta(meta);
         return item;
+    }
+
+    private void applyName(ItemMeta meta, String miniMessageSource) {
+        Component name = miniMessage.deserialize(miniMessageSource)
+                .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
+        meta.itemName(name);
+        meta.displayName(name);
     }
 
     // ── Recognition ─────────────────────────────────────────────────────────

@@ -26,6 +26,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 
 /**
  * The bottle-based drinking loop:
@@ -51,13 +52,15 @@ public final class DrinkingListener implements Listener {
     private final WaterContainers containers;
     private final CauldronWaterTracker cauldrons;
     private final Supplier<ThirstConfig> config;
+    private final Logger logger;
 
     public DrinkingListener(ThirstManager manager, WaterQualityService water, WaterContainers containers,
-                            CauldronWaterTracker cauldrons, Supplier<ThirstConfig> config) {
+                            CauldronWaterTracker cauldrons, Supplier<ThirstConfig> config, Logger logger) {
         this.manager = manager;
         this.water = water;
         this.containers = containers;
         this.cauldrons = cauldrons;
+        this.logger = logger;
         this.config = config;
     }
 
@@ -152,18 +155,21 @@ public final class DrinkingListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onDrink(PlayerItemConsumeEvent event) {
-        if (event.getItem().getType() != Material.POTION) {
-            return;
-        }
-        WaterQuality quality = containers.qualityOf(event.getItem());
+        ItemStack item = event.getItem();
+        WaterQuality quality = containers.qualityOf(item);
+        logger.info(() -> "[drink] " + event.getPlayer().getName() + " consumed " + item.getType()
+                + " (water-quality tag: " + quality + ")");
         if (quality == null) {
             return;
         }
         Player player = event.getPlayer();
         ThirstConfig cfg = config.get();
 
+        int before = manager.getLevel(player);
         manager.addThirst(player, cfg.drinking().restoreFor(quality));
         manager.setLastDrinkTimestamp(player, System.currentTimeMillis());
+        logger.info(() -> "[drink] thirst " + before + " -> " + manager.getLevel(player)
+                + " (+" + cfg.drinking().restoreFor(quality) + " for " + quality + ")");
 
         Location loc = player.getLocation();
         player.getWorld().playSound(loc, Sound.ENTITY_GENERIC_DRINK, 1.0f, 1.0f);

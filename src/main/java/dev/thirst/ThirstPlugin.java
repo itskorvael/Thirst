@@ -96,7 +96,7 @@ public final class ThirstPlugin extends JavaPlugin {
         CauldronWaterTracker cauldronWaterTracker = new CauldronWaterTracker(waterContainers, this::config);
         getServer().getPluginManager().registerEvents(cauldronWaterTracker, this);
         getServer().getPluginManager().registerEvents(new DrinkingListener(
-                thirstManager, waterQuality, waterContainers, cauldronWaterTracker, this::config), this);
+                thirstManager, waterQuality, waterContainers, cauldronWaterTracker, this::config, getLogger()), this);
         getServer().getPluginManager().registerEvents(new BucketListener(
                 waterContainers, waterQuality, cauldronWaterTracker), this);
 

@@ -158,7 +158,7 @@ thirst:
 
 # ─── Drinking ─────────────────────────────────────────────────────────────────
 # Drinking is bottle-based only. Fill an empty glass bottle at a water source
-# block (or a water cauldron) to get a "Bottle of Fresh Water" or "Bottle of
+# block (or a water cauldron) to get a "Bottle of Freshwater" or "Bottle of
 # Dirty Water" — the bottle is tagged with the quality of the chunk it was
 # filled in. Drink that bottle later to restore thirst. There is no
 # drink-straight-from-the-block interaction.
@@ -182,10 +182,10 @@ drinking:
   # Bottles / buckets already filled keep whatever quality they were filled with.
   dirty-while-raining: true
   # Item names for the filled containers (MiniMessage).
-  fresh-bottle-name: "<aqua>Bottle of Fresh Water"
+  fresh-bottle-name: "<aqua>Bottle of Freshwater"
   neutral-bottle-name: "<gray>Bottle of Water"
   dirty-bottle-name: "<color:#8a7f4a>Bottle of Dirty Water"
-  fresh-bucket-name: "<aqua>Bucket of Fresh Water"
+  fresh-bucket-name: "<aqua>Bucket of Freshwater"
   neutral-bucket-name: "<gray>Bucket of Water"
   dirty-bucket-name: "<color:#8a7f4a>Bucket of Dirty Water"
 
