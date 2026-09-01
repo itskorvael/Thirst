@@ -10,10 +10,13 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleSprintEvent;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
@@ -22,72 +25,86 @@ import java.util.function.Supplier;
  *
  * <ul>
  *   <li>the sprint <em>speed</em> bonus is cancelled via
- *       {@link CriticalSpeedModifier} (movement attribute);</li>
- *   <li>the sprint-<em>jump</em> boost — a separate flat velocity kick the
- *       attribute can't reach — is undone here by clamping horizontal air speed
- *       just after the jump.</li>
+ *       {@link CriticalSpeedModifier} (a movement attribute the client honours);</li>
+ *   <li>the sprint-<em>jump</em> forward lunge — a flat velocity kick the
+ *       attribute can't reach — is suppressed by clamping horizontal air speed
+ *       on every move tick for a short window after the jump.</li>
  * </ul>
  *
  * <p>A true "can't sprint" is impossible from the server (the client owns that
- * decision), so both effects make sprinting pointless instead.
+ * decision), so both effects just make sprinting pointless.
  */
 public final class ThirstSprintListener implements Listener {
 
-    private final Plugin plugin;
+    /** How long after a sprint-jump to keep clamping horizontal speed. */
+    private static final long JUMP_CLAMP_WINDOW_MILLIS = 900L;
+
     private final ThirstManager manager;
     private final Supplier<ThirstConfig> config;
     private final CriticalSpeedModifier speedModifier;
 
-    public ThirstSprintListener(Plugin plugin, ThirstManager manager, Supplier<ThirstConfig> config,
+    /** Player UUID -> {@code System.currentTimeMillis()} until which to clamp jump velocity. Main thread only. */
+    private final Map<UUID, Long> jumpClampUntil = new HashMap<>();
+
+    public ThirstSprintListener(ThirstManager manager, Supplier<ThirstConfig> config,
                                 CriticalSpeedModifier speedModifier) {
-        this.plugin = plugin;
         this.manager = manager;
         this.config = config;
         this.speedModifier = speedModifier;
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onMove(PlayerMoveEvent event) {
-        syncSpeed(event.getPlayer(), event.getPlayer().isSprinting());
+        Player player = event.getPlayer();
+        ThirstConfig.Thirst thirst = config.get().thirst();
+
+        syncSpeed(player, player.isSprinting(), thirst);
+        clampJumpIfPending(player, thirst);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onToggleSprint(PlayerToggleSprintEvent event) {
-        syncSpeed(event.getPlayer(), event.isSprinting());
+        syncSpeed(event.getPlayer(), event.isSprinting(), config.get().thirst());
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onJump(PlayerJumpEvent event) {
         Player player = event.getPlayer();
-        if (!player.isSprinting()) {
-            return;
-        }
         ThirstConfig.Thirst thirst = config.get().thirst();
-        if (!ThirstRules.sprintBlocked(player, manager.getLevel(player), thirst)) {
-            return;
+        if (player.isSprinting()
+                && ThirstRules.sprintBlocked(player, manager.getLevel(player), thirst)) {
+            jumpClampUntil.put(player.getUniqueId(),
+                    System.currentTimeMillis() + JUMP_CLAMP_WINDOW_MILLIS);
         }
-        double cap = thirst.criticalJumpHorizontalCap();
-        // The jump's velocity kick lands this tick; clamp on the next one.
-        plugin.getServer().getScheduler().runTask(plugin, () -> clampHorizontalSpeed(player, cap));
     }
 
-    private void syncSpeed(Player player, boolean sprinting) {
-        ThirstConfig.Thirst thirst = config.get().thirst();
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        jumpClampUntil.remove(event.getPlayer().getUniqueId());
+    }
+
+    private void syncSpeed(Player player, boolean sprinting, ThirstConfig.Thirst thirst) {
         boolean apply = sprinting
                 && ThirstRules.sprintBlocked(player, manager.getLevel(player), thirst);
         speedModifier.sync(player, apply, thirst.criticalSprintSpeedMultiplier());
     }
 
-    private static void clampHorizontalSpeed(Player player, double cap) {
-        if (!player.isValid() || player.isOnGround()) {
+    private void clampJumpIfPending(Player player, ThirstConfig.Thirst thirst) {
+        Long until = jumpClampUntil.get(player.getUniqueId());
+        if (until == null) {
             return;
         }
+        if (System.currentTimeMillis() >= until || player.isOnGround()) {
+            jumpClampUntil.remove(player.getUniqueId());
+            return;
+        }
+        double cap = thirst.criticalJumpHorizontalCap();
         Vector velocity = player.getVelocity();
         double horizontal = Math.hypot(velocity.getX(), velocity.getZ());
-        if (horizontal <= cap || horizontal < 1.0e-6) {
-            return;
+        if (horizontal > cap && horizontal > 1.0e-6) {
+            double scale = cap / horizontal;
+            player.setVelocity(new Vector(
+                    velocity.getX() * scale, velocity.getY(), velocity.getZ() * scale));
         }
-        double scale = cap / horizontal;
-        player.setVelocity(new Vector(velocity.getX() * scale, velocity.getY(), velocity.getZ() * scale));
     }
 }
