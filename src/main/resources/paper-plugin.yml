@@ -1,0 +1,26 @@
+name: Thirst
+version: '${version}'
+main: dev.thirst.ThirstPlugin
+loader: dev.thirst.ThirstPluginLoader
+api-version: '26.1'
+description: Adds a thirst mechanic that runs alongside vanilla hunger.
+authors:
+  - Thirst contributors
+website: https://github.com/example/thirst
+
+# Commands are registered at runtime through the Paper/Brigadier lifecycle API
+# (added in a later phase), so they are intentionally not declared here.
+
+permissions:
+  thirst.admin:
+    description: Grants all Thirst administrative commands.
+    default: op
+    children:
+      thirst.admin.thirst: true
+      thirst.admin.water: true
+  thirst.admin.thirst:
+    description: Manage player thirst levels and reload the plugin.
+    default: op
+  thirst.admin.water:
+    description: Paint per-chunk water quality (delegable to world builders).
+    default: op

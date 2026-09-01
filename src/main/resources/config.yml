@@ -1,0 +1,121 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+#  Thirst — configuration
+#
+#  All gameplay numbers live here; nothing is hardcoded. After editing, run
+#  /thirst reload (added in a later phase) or restart the server.
+#
+#  config-version is managed by the plugin for future migrations — do not edit.
+# ═══════════════════════════════════════════════════════════════════════════════
+config-version: 1
+
+# ─── HUD ──────────────────────────────────────────────────────────────────────
+# hud-mode:
+#   ACTIONBAR_TEXT        Text thirst bar drawn in the action bar (above the
+#                         hotbar). Default. No resource pack required.
+#   BOSSBAR              Debug / fallback only. Renders top-centre, not above the
+#                         hotbar, so it is not the intended look.
+#   ACTIONBAR_RESOURCEPACK  Reserved for a future release: pixel-positioned
+#                         droplet glyphs from a resource pack. Falls back to
+#                         ACTIONBAR_TEXT if the player declines the pack.
+hud-mode: ACTIONBAR_TEXT
+
+# If false (default), the thirst bar yields the action-bar slot to other plugins
+# and vanilla: when something else has written to a player's action bar within
+# 'hud.yield-window-millis', Thirst skips its own update that tick rather than
+# clobbering the message. Set true to always show the thirst bar.
+actionbar-overwrite-others: false
+
+# Reserved for the future ACTIONBAR_RESOURCEPACK mode. Ignored otherwise.
+resource-pack-url: ""
+
+hud:
+  # How often the HUD task refreshes each online player's action bar.
+  # Action-bar text fades after ~3s (60t), so keep this below ~40 ticks.
+  update-interval-ticks: 30
+  # BAR    -> "[||||||----] Thirst"
+  # PERCENT -> "75% Thirst"
+  style: BAR
+  bar-segments: 10
+  # MiniMessage colour tags.
+  color-normal: "<aqua>"
+  color-critical: "<red>"
+  # When actionbar-overwrite-others is false, treat the slot as "busy" for this
+  # many milliseconds after another plugin writes to it.
+  yield-window-millis: 3000
+
+# ─── Water quality ────────────────────────────────────────────────────────────
+# Quality of any chunk an admin has not explicitly painted. CLEAN | DIRTY
+default-water-quality: DIRTY
+
+water:
+  # Chunk-outline particle preview shown while using the water-quality wand
+  # (optional feature, later phase).
+  wand-enabled: true
+  wand-material: BLAZE_ROD
+
+# ─── Thirst mechanics ─────────────────────────────────────────────────────────
+thirst:
+  # Internal scale, mirrors vanilla hunger (0–20). Displayed as a bar / percent.
+  max: 20
+  # Seconds of pure idle time to lose 1 thirst point with zero exhaustion.
+  base-drain-interval-seconds: 120
+
+  # Below this % of max, the HUD turns red (see hud.color-critical).
+  critical-threshold-percent: 10
+
+  # Damage taken while at 0 thirst.
+  starvation-damage-enabled: true
+  starvation-damage-amount: 1.0
+  starvation-damage-interval-seconds: 4
+  # Like vanilla hunger: starvation will not reduce health below this value
+  # (vanilla uses 1.0 on Easy, 0.0 on Hard). Set to 0.0 to allow death anywhere.
+  starvation-minimum-health: 1.0
+
+  # Exhaustion model — mirrors vanilla hunger. Exhaustion accumulates from the
+  # actions below; every time it crosses 'exhaustion-threshold' the player loses
+  # 1 thirst point and the counter resets by that amount.
+  exhaustion-threshold: 4.0
+  exhaustion:
+    per-sprint-meter: 0.1
+    per-walk-meter: 0.0
+    per-swim-meter: 0.015
+    jump: 0.05
+    sprint-jump: 0.2
+    attack: 0.1
+    break-block: 0.005
+    take-damage: 0.1
+    # Applied once per second to any player in the Nether (dry, hot).
+    nether-per-second: 0.05
+
+# ─── Drinking ─────────────────────────────────────────────────────────────────
+# Drinking is bottle-based only. Fill an empty glass bottle at a water source
+# block (or a water cauldron) to get a "Bottle of Clean Water" or "Bottle of
+# Dirty Water" — the bottle is tagged with the quality of the chunk it was
+# filled in. Drink that bottle later to restore thirst. There is no
+# drink-straight-from-the-block interaction.
+drinking:
+  cooldown-ticks: 40
+  clean-water-restore-amount: 4
+  dirty-water-restore-amount: 2
+  # Chance (0.0–1.0) that drinking a Dirty Water bottle causes / stacks Salmonella.
+  salmonella-chance: 0.35
+  # Water drawn from a cauldron filled by rain is always CLEAN, regardless of the
+  # chunk's quality flag.
+  rain-cauldron-always-clean: true
+
+  # Optional stretch goal: standing in rain slowly restores thirst.
+  rain-trickle-enabled: false
+  rain-trickle-amount: 1
+  rain-trickle-interval-seconds: 20
+
+# ─── Salmonella (dirty-water illness) ─────────────────────────────────────────
+salmonella:
+  # A stack decays by 1 each time this many seconds pass without drinking dirty
+  # water.
+  decay-interval-seconds: 300
+  # Effect duration (seconds) applied/refreshed at each stack level 1..5.
+  # Drinking dirty water while infected adds a stack (max 5) and refreshes the
+  # duration to the value for the new level — it does not add durations.
+  stack-durations-seconds: [30, 45, 60, 90, 120]
+  # A milk bucket removes 1 stack instantly.
+  cure-with-milk: true
