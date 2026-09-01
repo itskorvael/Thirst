@@ -88,6 +88,12 @@ public final class ThirstTickTask implements Runnable {
 
         applyStarvation(player, state, t);
 
+        // Catch a player who was already sprinting when thirst dropped into the
+        // critical band; ThirstSprintListener handles fresh sprint attempts.
+        if (player.isSprinting() && ThirstRules.sprintBlocked(player, state.getLevel(), t)) {
+            player.setSprinting(false);
+        }
+
         manager.flush(player);
     }
 

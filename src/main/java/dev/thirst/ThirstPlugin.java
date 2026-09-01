@@ -7,6 +7,7 @@ import dev.thirst.integration.ActionBarSegment;
 import dev.thirst.integration.PlaceholderApiSegment;
 import dev.thirst.listener.ThirstExhaustionListener;
 import dev.thirst.listener.ThirstLifecycleListener;
+import dev.thirst.listener.ThirstSprintListener;
 import dev.thirst.thirst.ThirstKeys;
 import dev.thirst.thirst.ThirstManager;
 import dev.thirst.thirst.ThirstTickTask;
@@ -59,6 +60,8 @@ public final class ThirstPlugin extends JavaPlugin {
                 new ThirstLifecycleListener(thirstManager, hudTask), this);
         getServer().getPluginManager().registerEvents(
                 new ThirstExhaustionListener(thirstManager, this::config), this);
+        getServer().getPluginManager().registerEvents(
+                new ThirstSprintListener(thirstManager, this::config), this);
 
         this.tickTask = new ThirstTickTask(this, thirstManager, this::config);
         this.tickTask.start();

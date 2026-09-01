@@ -72,6 +72,10 @@ built-in default instead of breaking gameplay.
   knob.
 - **Respawn refills thirst to full** and clears exhaustion + illness, matching
   vanilla hunger resetting on death.
+- **Sprint is blocked at/below the critical threshold** (`disable-sprint-when-critical`,
+  default on): `ThirstSprintListener` cancels new sprint attempts;
+  `ThirstTickTask` stops an in-progress sprint on its next pass (≤ 1s). No
+  message — the HUD going red is the signal, as in vanilla.
 - **Folia is not supported** (uses the Bukkit scheduler).
 - `/thirst` is a minimal debug command this phase; Phase 7 owns the real one.
 
@@ -130,8 +134,9 @@ string works here, not just RealisticSeasons'.
 
 ### Open questions (defaults chosen, pending review)
 
-1. **Sprint gating** — thirst is currently *pressure only*; it does not disable
-   sprint at 0 (unlike vanilla hunger). Flip to hard gating later if desired.
+1. **Sprint gating** — *resolved:* sprinting is blocked at/below the critical
+   threshold (level 6/20 by default), exactly like vanilla hunger. Toggle with
+   `thirst.disable-sprint-when-critical`.
 2. **Hunger interaction** — thirst is fully independent of vanilla hunger for
    now (no salty-food drain multiplier).
 3. **Salmonella cure** — currently item-only (milk bucket). Time-based recovery

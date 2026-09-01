@@ -93,6 +93,10 @@ thirst:
   # Below this % of max, the HUD turns red (see hud.color-critical). Default
   # matches vanilla hunger's own "sprint disabled" cutoff: hunger level 6/20 = 30%.
   critical-threshold-percent: 30
+  # At/below critical-threshold-percent, stop the player from sprinting, exactly
+  # like vanilla hunger at 6/20. The HUD turning red is the only warning
+  # (vanilla gives no message either).
+  disable-sprint-when-critical: true
 
   # Damage taken while at 0 thirst.
   starvation-damage-enabled: true

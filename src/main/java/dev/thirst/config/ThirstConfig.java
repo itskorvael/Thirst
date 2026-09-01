@@ -69,6 +69,7 @@ public record ThirstConfig(
             int max,
             int baseDrainIntervalSeconds,
             int criticalThresholdPercent,
+            boolean disableSprintWhenCritical,
             boolean starvationDamageEnabled,
             double starvationDamageAmount,
             int starvationDamageIntervalSeconds,
@@ -76,7 +77,11 @@ public record ThirstConfig(
             double exhaustionThreshold,
             Exhaustion exhaustion
     ) {
-        /** Absolute thirst value at or below which the HUD switches to the critical colour. */
+        /**
+         * Absolute thirst value at or below which the HUD switches to the
+         * critical colour and (if {@link #disableSprintWhenCritical()}) sprinting
+         * is blocked.
+         */
         public double criticalLevel() {
             return max * (criticalThresholdPercent / 100.0);
         }
@@ -202,6 +207,7 @@ public record ThirstConfig(
                 max,
                 thirstSec.getInt("base-drain-interval-seconds", 120, 1, 86_400),
                 thirstSec.getInt("critical-threshold-percent", 10, 0, 100),
+                thirstSec.getBoolean("disable-sprint-when-critical", true),
                 thirstSec.getBoolean("starvation-damage-enabled", true),
                 thirstSec.getDouble("starvation-damage-amount", 1.0, 0.0, 1024.0),
                 thirstSec.getInt("starvation-damage-interval-seconds", 4, 1, 3600),

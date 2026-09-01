@@ -18,7 +18,8 @@ class ThirstHudFormatterTest {
 
     /** max, critical% */
     private static ThirstConfig.Thirst thirst(int max, int criticalPercent) {
-        return new ThirstConfig.Thirst(max, 120, criticalPercent, true, 1.0, 4, 1.0, 4.0, noExhaustion());
+        return new ThirstConfig.Thirst(
+                max, 120, criticalPercent, true, true, 1.0, 4, 1.0, 4.0, noExhaustion());
     }
 
     private static ThirstConfig.Hud hud(BarStyle style, int segments, String label) {
