@@ -51,7 +51,11 @@ Built in phases; see the checklist below.
   drink to restore thirst; dirty water rolls a Salmonella stack; rain makes every
   source dirty; cauldrons hold the quality of what's poured in; pouring a tagged
   bucket sets a `NEUTRAL` chunk's quality
-- [ ] Phase 6 — Salmonella stacks, effects, decay, cure
+- [x] **Phase 6** — Salmonella: per-stack potion effects (Nausea → +Slowness →
+  +Weakness), a stack decays every `decay-interval-seconds`, milk cures, severe
+  stacks deal periodic `MAGIC` damage (lethal from `damage.lethal-from-stack`),
+  occasional vomit cosmetic; the thirst HUD turns **neon green** while infected
+  (with a `☣<stacks>` suffix)
 - [ ] Phase 7 — `/thirst` commands, permissions, config validation, `/thirst reload`
 - [ ] Phase 8 — HUD v2 (resource-pack droplet glyphs), optional
 
@@ -200,6 +204,41 @@ built-in default instead of breaking gameplay.
 - Mostly not unit-testable (ItemStack needs a running server). The pure bits —
   the Salmonella stack maths and the cauldron `mix()` rule — are tested; the
   rest needs an in-game check.
+
+### Phase 6 design notes (for review)
+
+- **Stack state lives in the PDC** (`salmonella_stacks`, `salmonella_ticks_remaining`),
+  written by `ThirstManager` and owned by `SalmonellaService`. No task of its
+  own — `ThirstTickTask` drives `SalmonellaService.tick(player)` once per second
+  before the thirst-drain logic, so illness ticks even while the player is
+  otherwise thirst-exempt (Creative, etc.).
+- **Effect structure is code-defined, tuning is config.** `SalmonellaEffects`
+  maps a fixed 1→5 severity progression (Nausea I; +Slowness I; Nausea II +
+  Weakness I; +Weakness II; +Slowness I) — that's the illness's shape, not a
+  number to tweak. Durations (`stack-durations-seconds`), decay interval, damage
+  and cure are all in `config.yml`. `max-stacks` = number of duration entries
+  (capped at 5). Nausea is the icon shown, matching the earlier decision to
+  reuse the vanilla Nausea indicator.
+- **Decay is pure arithmetic** (`SalmonellaService.decay(...)` → `DecayStep`,
+  unit-tested): the timer counts down each tick; on expiry it drops one stack
+  and resets, or reports a cure at zero.
+- **Milk cures** (`PlayerItemConsumeEvent`, `MILK_BUCKET`) — `milk-cure-stacks`
+  at a time (default 1, i.e. one glass = one stack), fully configurable;
+  `cure-with-milk: false` disables it.
+- **Severe-stack damage:** from `damage.from-stack` (default 4) the player takes
+  `damage.amount` every `damage.interval-seconds` as `DamageType.MAGIC`, with a
+  1-health floor **until** `damage.lethal-from-stack` (default 5), where the
+  floor drops to 0 and Salmonella can kill. Timer is in-memory (`forget` on quit).
+- **Neon-green HUD while infected** (the extra ask): `ThirstHudFormatter` colour
+  priority is *infected > critical thirst > normal*; `hud.color-infected`
+  (default `<color:#39FF14>`) plus a `☣<stacks>` suffix when
+  `hud.salmonella-indicator` is on. The boss-bar fallback goes
+  `BossBar.Color.GREEN`.
+- **Vomit** is cosmetic only (slime particles + burp) from `vomit-from-stack`,
+  ~1/4 seconds.
+- New config: `hud.color-infected`, `hud.salmonella-indicator`, and the
+  `salmonella.{milk-cure-stacks,vomit-from-stack}` + `salmonella.damage.*`
+  subsection.
 
 ### Sharing the action bar with RealisticSeasons (or any plugin)
 

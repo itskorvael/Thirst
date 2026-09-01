@@ -40,13 +40,13 @@ final class ActionBarHudRenderer implements HudRenderer {
     }
 
     @Override
-    public void update(Player player, int level, ThirstConfig config) {
+    public void update(Player player, int level, int salmonellaStacks, ThirstConfig config) {
         if (!config.actionbarOverwriteOthers() && isYielding(player.getUniqueId())) {
             return;
         }
 
         Component bar = miniMessage.deserialize(
-                ThirstHudFormatter.render(level, config.thirst(), config.hud()));
+                ThirstHudFormatter.render(level, salmonellaStacks, config.thirst(), config.hud()));
 
         Component message = bar;
         ActionBarSegment segment = this.externalSegment;

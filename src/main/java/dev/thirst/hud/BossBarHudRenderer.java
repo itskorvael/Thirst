@@ -22,12 +22,12 @@ final class BossBarHudRenderer implements HudRenderer {
     private final Map<UUID, BossBar> bars = new HashMap<>();
 
     @Override
-    public void update(Player player, int level, ThirstConfig config) {
+    public void update(Player player, int level, int salmonellaStacks, ThirstConfig config) {
         Component name = miniMessage.deserialize(
-                ThirstHudFormatter.render(level, config.thirst(), config.hud()));
+                ThirstHudFormatter.render(level, salmonellaStacks, config.thirst(), config.hud()));
         float progress = ThirstHudFormatter.fractionOf(level, config.thirst().max());
-        BossBar.Color color = ThirstHudFormatter.isCritical(level, config.thirst())
-                ? BossBar.Color.RED
+        BossBar.Color color = salmonellaStacks > 0 ? BossBar.Color.GREEN
+                : ThirstHudFormatter.isCritical(level, config.thirst()) ? BossBar.Color.RED
                 : BossBar.Color.BLUE;
 
         BossBar bar = bars.get(player.getUniqueId());

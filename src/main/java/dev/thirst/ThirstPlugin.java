@@ -13,6 +13,8 @@ import dev.thirst.integration.PlaceholderApiSegment;
 import dev.thirst.listener.ThirstExhaustionListener;
 import dev.thirst.listener.ThirstLifecycleListener;
 import dev.thirst.listener.ThirstSprintListener;
+import dev.thirst.salmonella.SalmonellaListener;
+import dev.thirst.salmonella.SalmonellaService;
 import dev.thirst.thirst.CriticalSpeedModifier;
 import dev.thirst.thirst.ThirstKeys;
 import dev.thirst.thirst.ThirstManager;
@@ -92,15 +94,20 @@ public final class ThirstPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
                 new ThirstSprintListener(thirstManager, this::config, speedModifier), this);
 
+        SalmonellaService salmonellaService = new SalmonellaService(thirstManager, this::config);
+        getServer().getPluginManager().registerEvents(
+                new SalmonellaListener(salmonellaService, this::config), this);
+
         WaterContainers waterContainers = new WaterContainers(this, this::config);
         CauldronWaterTracker cauldronWaterTracker = new CauldronWaterTracker(waterContainers, this::config);
         getServer().getPluginManager().registerEvents(cauldronWaterTracker, this);
         getServer().getPluginManager().registerEvents(new DrinkingListener(
-                thirstManager, waterQuality, waterContainers, cauldronWaterTracker, this::config, getLogger()), this);
+                thirstManager, waterQuality, waterContainers, cauldronWaterTracker, salmonellaService,
+                this::config), this);
         getServer().getPluginManager().registerEvents(new BucketListener(
                 waterContainers, waterQuality, cauldronWaterTracker), this);
 
-        this.tickTask = new ThirstTickTask(this, thirstManager, this::config);
+        this.tickTask = new ThirstTickTask(this, thirstManager, this::config, salmonellaService::tick);
         this.tickTask.start();
         this.hudTask.start();
 

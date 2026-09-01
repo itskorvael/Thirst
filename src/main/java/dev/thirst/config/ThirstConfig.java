@@ -38,6 +38,8 @@ public record ThirstConfig(
             int barSegments,
             String colorNormal,
             String colorCritical,
+            String colorInfected,
+            boolean salmonellaIndicator,
             long yieldWindowMillis,
             String label,
             ExternalSegment externalSegment
@@ -158,11 +160,17 @@ public record ThirstConfig(
         }
     }
 
-    /** Salmonella decay + per-stack effect durations. */
+    /** Salmonella decay, per-stack effect durations, severe-stack damage and cure. */
     public record Salmonella(
             int decayIntervalSeconds,
             List<Integer> stackDurationsSeconds,
-            boolean cureWithMilk
+            boolean cureWithMilk,
+            int milkCureStacks,
+            int vomitFromStack,
+            int damageFromStack,
+            double damageAmount,
+            int damageIntervalSeconds,
+            int lethalFromStack
     ) {
         public Salmonella {
             stackDurationsSeconds = List.copyOf(stackDurationsSeconds);
@@ -217,6 +225,8 @@ public record ThirstConfig(
                 hudSec.getInt("bar-segments", 10, 1, 40),
                 hudSec.getNonBlankString("color-normal", "<aqua>"),
                 hudSec.getNonBlankString("color-critical", "<red>"),
+                hudSec.getNonBlankString("color-infected", "<color:#39FF14>"),
+                hudSec.getBoolean("salmonella-indicator", true),
                 hudSec.getLong("yield-window-millis", 3000L, 0L, 60_000L),
                 hudSec.getString("label", "Thirst"),
                 externalSegment
@@ -283,10 +293,17 @@ public record ThirstConfig(
         );
 
         Reader salSec = root.section("salmonella");
+        Reader salDamageSec = salSec.section("damage");
         Salmonella salmonella = new Salmonella(
                 salSec.getInt("decay-interval-seconds", 300, 1, 86_400),
                 salSec.getStackDurations("stack-durations-seconds", DEFAULT_STACK_DURATIONS),
-                salSec.getBoolean("cure-with-milk", true)
+                salSec.getBoolean("cure-with-milk", true),
+                salSec.getInt("milk-cure-stacks", 1, 1, MAX_SALMONELLA_STACKS),
+                salSec.getInt("vomit-from-stack", 3, 1, MAX_SALMONELLA_STACKS),
+                salDamageSec.getInt("from-stack", 4, 1, MAX_SALMONELLA_STACKS),
+                salDamageSec.getDouble("amount", 1.0, 0.0, 1024.0),
+                salDamageSec.getInt("interval-seconds", 5, 1, 3600),
+                salDamageSec.getInt("lethal-from-stack", 5, 1, MAX_SALMONELLA_STACKS)
         );
 
         return new ThirstConfig(

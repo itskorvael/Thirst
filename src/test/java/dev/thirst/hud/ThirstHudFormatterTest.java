@@ -24,7 +24,13 @@ class ThirstHudFormatterTest {
 
     private static ThirstConfig.Hud hud(BarStyle style, int segments, String label) {
         ThirstConfig.ExternalSegment none = new ThirstConfig.ExternalSegment(false, "", true, " | ");
-        return new ThirstConfig.Hud(30, style, segments, "<aqua>", "<red>", 3000L, label, none);
+        return new ThirstConfig.Hud(30, style, segments, "<aqua>", "<red>", "<green>", true,
+                3000L, label, none);
+    }
+
+    /** render with no Salmonella. */
+    private static String render(int level, ThirstConfig.Thirst thirst, ThirstConfig.Hud hud) {
+        return ThirstHudFormatter.render(level, 0, thirst, hud);
     }
 
     // ── critical detection ──────────────────────────────────────────────────
@@ -42,50 +48,51 @@ class ThirstHudFormatterTest {
 
     @Test
     void rendersNormalColourAboveThreshold() {
-        String out = ThirstHudFormatter.render(20, thirst(20, 30), hud(BarStyle.PERCENT, 10, "Thirst"));
-        assertEquals("<aqua>100% Thirst", out);
+        assertEquals("<aqua>100% Thirst", render(20, thirst(20, 30), hud(BarStyle.PERCENT, 10, "Thirst")));
     }
 
     @Test
     void rendersCriticalColourAtThreshold() {
-        String out = ThirstHudFormatter.render(6, thirst(20, 30), hud(BarStyle.PERCENT, 10, "Thirst"));
-        assertEquals("<red>30% Thirst", out);
+        assertEquals("<red>30% Thirst", render(6, thirst(20, 30), hud(BarStyle.PERCENT, 10, "Thirst")));
+    }
+
+    @Test
+    void infectedColourAndIndicatorOverrideEverything() {
+        // critical thirst + infected -> still infected colour, with ☣ suffix
+        assertEquals("<green>30% Thirst ☣3",
+                ThirstHudFormatter.render(6, 3, thirst(20, 30), hud(BarStyle.PERCENT, 10, "Thirst")));
+        assertEquals("<green>[|||||-----] ☣1",
+                ThirstHudFormatter.render(10, 1, thirst(20, 30), hud(BarStyle.BAR, 10, "Thirst")));
     }
 
     // ── percent style ───────────────────────────────────────────────────────
 
     @Test
     void percentRoundsToNearest() {
-        // 13/20 = 65%
-        assertEquals("<aqua>65% Thirst",
-                ThirstHudFormatter.render(13, thirst(20, 30), hud(BarStyle.PERCENT, 10, "Thirst")));
+        assertEquals("<aqua>65% Thirst", render(13, thirst(20, 30), hud(BarStyle.PERCENT, 10, "Thirst")));
     }
 
     @Test
     void percentBlankLabelOmitsSuffix() {
-        assertEquals("<aqua>50%",
-                ThirstHudFormatter.render(10, thirst(20, 30), hud(BarStyle.PERCENT, 10, "")));
+        assertEquals("<aqua>50%", render(10, thirst(20, 30), hud(BarStyle.PERCENT, 10, "")));
     }
 
     // ── bar style ───────────────────────────────────────────────────────────
 
     @Test
     void barFullAndEmpty() {
-        assertEquals("<aqua>[||||||||||]",
-                ThirstHudFormatter.render(20, thirst(20, 30), hud(BarStyle.BAR, 10, "Thirst")));
-        assertEquals("<red>[----------]",
-                ThirstHudFormatter.render(0, thirst(20, 30), hud(BarStyle.BAR, 10, "Thirst")));
+        assertEquals("<aqua>[||||||||||]", render(20, thirst(20, 30), hud(BarStyle.BAR, 10, "Thirst")));
+        assertEquals("<red>[----------]", render(0, thirst(20, 30), hud(BarStyle.BAR, 10, "Thirst")));
     }
 
     @Test
     void barHalf() {
-        assertEquals("<aqua>[|||||-----]",
-                ThirstHudFormatter.render(10, thirst(20, 30), hud(BarStyle.BAR, 10, "Thirst")));
+        assertEquals("<aqua>[|||||-----]", render(10, thirst(20, 30), hud(BarStyle.BAR, 10, "Thirst")));
     }
 
     @Test
     void barSegmentCountConfigurable() {
-        String out = ThirstHudFormatter.render(15, thirst(20, 30), hud(BarStyle.BAR, 20, "Thirst"));
+        String out = render(15, thirst(20, 30), hud(BarStyle.BAR, 20, "Thirst"));
         assertEquals("<aqua>[|||||||||||||||-----]", out);
         assertEquals(22, out.substring("<aqua>".length()).length()); // 20 segments + 2 brackets
     }

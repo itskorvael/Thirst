@@ -40,6 +40,11 @@ hud:
   # colour like <#4FC3F7>, even a <gradient:...>.
   color-normal: "<aqua>"
   color-critical: "<red>"
+  # Bar colour while the player has any Salmonella stacks (overrides both of the
+  # above). Neon green.
+  color-infected: "<color:#39FF14>"
+  # Append " ☣<n>" (stack count) to the bar while infected.
+  salmonella-indicator: true
   # Text shown next to the percent (PERCENT style only). Blank hides it.
   label: "Thirst"
 
@@ -195,13 +200,31 @@ drinking:
   rain-trickle-interval-seconds: 20
 
 # ─── Salmonella (dirty-water illness) ─────────────────────────────────────────
+# A stacking illness from drinking DIRTY water (chance = drinking.salmonella-chance).
+# Effects escalate by stack (code-defined, following the spec table):
+#   1  Nausea I
+#   2  Nausea I  + Slowness I
+#   3  Nausea II + Weakness I            (+ occasional vomit)
+#   4  Nausea II + Weakness II           (+ periodic damage)
+#   5  Nausea II + Slowness I + Weakness II  (+ lethal damage)
+# Drinking dirty water while infected adds a stack (max 5) and resets the decay
+# timer. The HUD bar turns neon green (hud.color-infected) while infected.
 salmonella:
-  # A stack decays by 1 each time this many seconds pass without drinking dirty
-  # water.
+  # A stack decays by 1 each time this many seconds pass without a new infection.
   decay-interval-seconds: 300
-  # Effect duration (seconds) applied/refreshed at each stack level 1..5.
-  # Drinking dirty water while infected adds a stack (max 5) and refreshes the
-  # duration to the value for the new level — it does not add durations.
+  # Potion-effect duration (seconds) applied per stack level 1..5 — refreshed
+  # every second, so this is really "how long the effects linger after a
+  # relog / plugin stop".
   stack-durations-seconds: [30, 45, 60, 90, 120]
-  # A milk bucket removes 1 stack instantly.
+  # Drinking a milk bucket removes this many stacks instantly.
   cure-with-milk: true
+  milk-cure-stacks: 1
+  # From this stack level, occasional cosmetic vomit particle + sound.
+  vomit-from-stack: 3
+  damage:
+    # From this stack level, take damage every 'interval-seconds'.
+    from-stack: 4
+    amount: 1.0
+    interval-seconds: 5
+    # From this stack level the damage can kill (below it, it stops at 1 HP).
+    lethal-from-stack: 5

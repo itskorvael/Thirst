@@ -1,6 +1,7 @@
 package dev.thirst.drinking;
 
 import dev.thirst.config.ThirstConfig;
+import dev.thirst.salmonella.SalmonellaService;
 import dev.thirst.thirst.ThirstManager;
 import dev.thirst.water.WaterQuality;
 import dev.thirst.water.WaterQualityService;
@@ -25,7 +26,6 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
 
 /**
  * The bottle-based drinking loop:
@@ -50,17 +50,18 @@ public final class DrinkingListener implements Listener {
     private final WaterQualityService water;
     private final WaterContainers containers;
     private final CauldronWaterTracker cauldrons;
+    private final SalmonellaService salmonella;
     private final Supplier<ThirstConfig> config;
-    private final Logger logger;
 
     public DrinkingListener(ThirstManager manager, WaterQualityService water, WaterContainers containers,
-                            CauldronWaterTracker cauldrons, Supplier<ThirstConfig> config, Logger logger) {
+                            CauldronWaterTracker cauldrons, SalmonellaService salmonella,
+                            Supplier<ThirstConfig> config) {
         this.manager = manager;
         this.water = water;
         this.containers = containers;
         this.cauldrons = cauldrons;
+        this.salmonella = salmonella;
         this.config = config;
-        this.logger = logger;
     }
 
     // ── Filling ─────────────────────────────────────────────────────────────
@@ -92,10 +93,6 @@ public final class DrinkingListener implements Listener {
     private void fillBottle(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         FillTarget target = resolveFillTarget(event);
-        logger.info(() -> "[fill] " + player.getName() + " action=" + event.getAction()
-                + " clicked=" + (event.getClickedBlock() == null ? "-" : event.getClickedBlock().getType())
-                + " target=" + (target == null ? "NONE"
-                        : target.block().getType() + (target.cauldron() ? "(cauldron)" : "")));
         if (target == null) {
             return;
         }
@@ -113,10 +110,7 @@ public final class DrinkingListener implements Listener {
             }
         }
 
-        ItemStack bottle = containers.createBottle(quality);
-        logger.info(() -> "[fill] created quality=" + quality + " readback="
-                + containers.qualityOf(bottle) + " keys=" + keysOf(bottle));
-        giveOrDrop(player, bottle);
+        giveOrDrop(player, containers.createBottle(quality));
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_BOTTLE_FILL, 1.0f, 1.0f);
         player.swingMainHand();
     }
@@ -196,35 +190,29 @@ public final class DrinkingListener implements Listener {
         Player player = event.getPlayer();
 
         WaterQuality quality = containers.qualityOf(event.getItem());
-        ItemStack handItem = event.getHand() != null ? player.getInventory().getItem(event.getHand()) : null;
-        if (quality == null && handItem != null) {
+        if (quality == null && event.getHand() != null) {
             // Safety net: some paths hand back a stripped item on the event.
-            quality = containers.qualityOf(handItem);
+            quality = containers.qualityOf(player.getInventory().getItem(event.getHand()));
         }
-        WaterQuality resolved = quality;
-        logger.info(() -> "[drink] " + player.getName()
-                + " event=" + event.getItem().getType() + "/" + keysOf(event.getItem())
-                + " hand=" + (handItem == null ? "-" : handItem.getType() + "/" + keysOf(handItem))
-                + " => " + resolved);
-        if (resolved == null) {
+        if (quality == null) {
             return;
         }
         ThirstConfig cfg = config.get();
 
-        int before = manager.getLevel(player);
-        manager.addThirst(player, cfg.drinking().restoreFor(resolved));
-        logger.info(() -> "[drink] thirst " + before + " -> " + manager.getLevel(player));
+        manager.addThirst(player, cfg.drinking().restoreFor(quality));
         manager.setLastDrinkTimestamp(player, System.currentTimeMillis());
 
         Location loc = player.getLocation();
         player.getWorld().playSound(loc, Sound.ENTITY_GENERIC_DRINK, 1.0f, 1.0f);
 
-        switch (resolved) {
+        switch (quality) {
             case FRESH -> player.getWorld().spawnParticle(Particle.FALLING_WATER,
                     loc.clone().add(0.0, 1.4, 0.0), 8, 0.25, 0.15, 0.25, 0.0);
             case DIRTY -> {
                 player.getWorld().playSound(loc, Sound.ENTITY_PLAYER_BURP, 0.7f, 1.0f);
-                rollSalmonella(player, cfg);
+                if (ThreadLocalRandom.current().nextDouble() < cfg.drinking().salmonellaChance()) {
+                    salmonella.infect(player);
+                }
             }
             case NEUTRAL -> {
                 // plain water — just the drink sound
@@ -232,29 +220,11 @@ public final class DrinkingListener implements Listener {
         }
     }
 
-    private void rollSalmonella(Player player, ThirstConfig cfg) {
-        if (ThreadLocalRandom.current().nextDouble() >= cfg.drinking().salmonellaChance()) {
-            return;
-        }
-        ThirstConfig.Salmonella salmonella = cfg.salmonella();
-        int nextStack = Math.min(manager.getSalmonellaStacks(player) + 1, salmonella.maxStacks());
-        int ticks = salmonella.durationSecondsForStack(nextStack) * 20;
-        manager.setSalmonella(player, nextStack, ticks);
-        // Phase 6's scheduler turns these stacks into escalating effects, decay and cure.
-    }
-
     // ── Helpers ─────────────────────────────────────────────────────────────
 
     private static void giveOrDrop(Player player, ItemStack item) {
         player.getInventory().addItem(item).values().forEach(leftover ->
                 player.getWorld().dropItemNaturally(player.getLocation(), leftover));
-    }
-
-    private static String keysOf(@Nullable ItemStack item) {
-        if (item == null || !item.hasItemMeta()) {
-            return "no-meta";
-        }
-        return item.getItemMeta().getPersistentDataContainer().getKeys().toString();
     }
 
     private record FillTarget(Block block, boolean cauldron) {

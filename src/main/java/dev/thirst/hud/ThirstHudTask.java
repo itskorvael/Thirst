@@ -107,7 +107,8 @@ public final class ThirstHudTask implements Runnable {
             try {
                 other.remove(player);
                 if (ThirstRules.affected(player)) {
-                    active.update(player, manager.getLevel(player), cfg);
+                    active.update(player, manager.getLevel(player),
+                            manager.getSalmonellaStacks(player), cfg);
                 } else {
                     active.remove(player);
                 }

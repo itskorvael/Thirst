@@ -28,13 +28,22 @@ public final class ThirstTickTask implements Runnable {
     private final JavaPlugin plugin;
     private final ThirstManager manager;
     private final Supplier<ThirstConfig> config;
+    private final SalmonellaTick salmonella;
 
     private @Nullable BukkitTask handle;
 
-    public ThirstTickTask(JavaPlugin plugin, ThirstManager manager, Supplier<ThirstConfig> config) {
+    /** Minimal hook so this task can drive Salmonella without a package cycle. */
+    @FunctionalInterface
+    public interface SalmonellaTick {
+        void tick(Player player);
+    }
+
+    public ThirstTickTask(JavaPlugin plugin, ThirstManager manager, Supplier<ThirstConfig> config,
+                          SalmonellaTick salmonella) {
         this.plugin = plugin;
         this.manager = manager;
         this.config = config;
+        this.salmonella = salmonella;
     }
 
     public void start() {
@@ -64,6 +73,8 @@ public final class ThirstTickTask implements Runnable {
     }
 
     private void tick(Player player, ThirstConfig cfg) {
+        salmonella.tick(player);
+
         if (!ThirstRules.affected(player)) {
             manager.flush(player);
             return;

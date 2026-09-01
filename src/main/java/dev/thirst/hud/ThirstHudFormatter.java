@@ -19,15 +19,26 @@ public final class ThirstHudFormatter {
 
     /**
      * Full MiniMessage source for the HUD, e.g. {@code "<aqua>[||||||----]"} or
-     * {@code "<red>30% Thirst"}. Used for both the action bar and the boss-bar
-     * title, so the two modes always agree on the numbers.
+     * {@code "<color:#39FF14>30% Thirst ☣2"}. Used for both the action bar and
+     * the boss-bar title, so the two modes always agree.
+     *
+     * <p>Colour priority: infected (any Salmonella stack) &gt; critical thirst &gt;
+     * normal. Infected also appends {@code " ☣<stacks>"} when
+     * {@code salmonella-indicator} is on.
      */
-    public static String render(int level, ThirstConfig.Thirst thirst, ThirstConfig.Hud hud) {
-        String color = isCritical(level, thirst) ? hud.colorCritical() : hud.colorNormal();
+    public static String render(int level, int salmonellaStacks,
+                                ThirstConfig.Thirst thirst, ThirstConfig.Hud hud) {
+        boolean infected = salmonellaStacks > 0;
+        String color = infected ? hud.colorInfected()
+                : isCritical(level, thirst) ? hud.colorCritical()
+                : hud.colorNormal();
         String body = switch (hud.style()) {
             case PERCENT -> percentText(level, thirst.max(), hud.label());
             case BAR -> barText(level, thirst.max(), hud.barSegments());
         };
+        if (infected && hud.salmonellaIndicator()) {
+            body += " ☣" + salmonellaStacks;
+        }
         return color + body;
     }
 

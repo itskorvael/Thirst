@@ -10,8 +10,8 @@ import org.bukkit.entity.Player;
  */
 interface HudRenderer {
 
-    /** Draw / refresh the HUD for {@code player} at the given thirst level. */
-    void update(Player player, int level, ThirstConfig config);
+    /** Draw / refresh the HUD for {@code player} at the given thirst level + Salmonella stacks. */
+    void update(Player player, int level, int salmonellaStacks, ThirstConfig config);
 
     /** Tear down any per-player resources (e.g. a boss bar). Safe to call when nothing is shown. */
     void remove(Player player);
