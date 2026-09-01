@@ -11,6 +11,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jspecify.annotations.Nullable;
 
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 /**
  * Single repeating task that refreshes the thirst HUD for every online player.
@@ -103,11 +104,16 @@ public final class ThirstHudTask implements Runnable {
         HudRenderer other = useBossBar ? actionBar : bossBar;
 
         for (Player player : plugin.getServer().getOnlinePlayers()) {
-            other.remove(player);
-            if (ThirstRules.affected(player)) {
-                active.update(player, manager.getLevel(player), cfg);
-            } else {
-                active.remove(player);
+            try {
+                other.remove(player);
+                if (ThirstRules.affected(player)) {
+                    active.update(player, manager.getLevel(player), cfg);
+                } else {
+                    active.remove(player);
+                }
+            } catch (RuntimeException ex) {
+                plugin.getLogger().log(Level.WARNING,
+                        "Thirst HUD update failed for " + player.getName(), ex);
             }
         }
     }

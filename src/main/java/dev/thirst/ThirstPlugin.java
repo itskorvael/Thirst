@@ -42,6 +42,7 @@ public final class ThirstPlugin extends JavaPlugin {
     private @Nullable ThirstTickTask tickTask;
     private @Nullable ThirstHudTask hudTask;
     private @Nullable CriticalSpeedModifier speedModifier;
+    private @Nullable ActionBarSegment externalSegment;
 
     /** Tracks the last-seen PlaceholderAPI availability so transitions are logged once. */
     private boolean placeholderApiActive;
@@ -157,7 +158,13 @@ public final class ThirstPlugin extends JavaPlugin {
             getLogger().warning("hud.external-segment is enabled but PlaceholderAPI is not "
                     + "loaded; run /thirst reload once it is, or restart.");
         }
-        return present ? new PlaceholderApiSegment(this::config) : null;
+        this.externalSegment = present ? new PlaceholderApiSegment(this::config) : null;
+        return externalSegment;
+    }
+
+    /** The live external HUD segment source, or {@code null} when unavailable. */
+    public @Nullable ActionBarSegment externalSegment() {
+        return externalSegment;
     }
 
     /**

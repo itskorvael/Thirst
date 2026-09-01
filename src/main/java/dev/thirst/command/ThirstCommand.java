@@ -76,10 +76,17 @@ public final class ThirstCommand {
                 .then(Commands.literal("reload")
                         .executes(ctx -> {
                             plugin.loadPluginConfig();
-                            ctx.getSource().getSender().sendMessage(
+                            var sender = ctx.getSource().getSender();
+                            sender.sendMessage(
                                     Component.text("Thirst configuration reloaded.", NamedTextColor.GREEN));
-                            ctx.getSource().getSender().sendMessage(
+                            sender.sendMessage(
                                     Component.text(plugin.externalSegmentStatus(), NamedTextColor.GRAY));
+
+                            var segment = plugin.externalSegment();
+                            if (segment != null && ctx.getSource().getExecutor() instanceof Player player) {
+                                sender.sendMessage(Component.text(
+                                        "  " + segment.diagnose(player), NamedTextColor.DARK_GRAY));
+                            }
                             return Command.SINGLE_SUCCESS;
                         }))
                 .build();

@@ -52,4 +52,25 @@ public final class PlaceholderApiSegment implements ActionBarSegment {
         String ampersand = resolved.replace(SECTION, '&');
         return Optional.of(LegacyComponentSerializer.legacyAmpersand().deserialize(ampersand));
     }
+
+    @Override
+    public String diagnose(Player player) {
+        ThirstConfig.ExternalSegment settings = config.get().hud().externalSegment();
+        if (!settings.enabled()) {
+            return "hud.external-segment.enabled is false";
+        }
+        String template = settings.placeholder();
+        if (template.isBlank()) {
+            return "hud.external-segment.placeholder is blank";
+        }
+        String resolved;
+        try {
+            resolved = PlaceholderAPI.setPlaceholders(player, template);
+        } catch (RuntimeException ex) {
+            return "PlaceholderAPI.setPlaceholders threw " + ex.getClass().getSimpleName()
+                    + ": " + ex.getMessage();
+        }
+        String shown = resolve(player).isPresent() ? "SHOWN" : "SUPPRESSED";
+        return "template=[" + template + "]  resolved=[" + resolved + "]  -> " + shown;
+    }
 }

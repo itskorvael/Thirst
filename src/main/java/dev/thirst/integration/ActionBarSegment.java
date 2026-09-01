@@ -17,4 +17,10 @@ public interface ActionBarSegment {
      *         disabled, unavailable, or the resolved text is blank
      */
     Optional<Component> resolve(Player player);
+
+    /**
+     * Human-readable trace of what {@link #resolve(Player)} does for this
+     * player — used by {@code /thirst reload} to diagnose the external segment.
+     */
+    String diagnose(Player player);
 }
