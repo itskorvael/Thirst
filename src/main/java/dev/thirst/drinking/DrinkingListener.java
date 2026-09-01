@@ -195,8 +195,14 @@ public final class DrinkingListener implements Listener {
     private record FillTarget(Block block, boolean cauldron) {
 
         WaterQuality quality(WaterQualityService water, RainCauldronTracker rainCauldrons, ThirstConfig cfg) {
-            if (cauldron && cfg.drinking().rainCauldronAlwaysFresh() && rainCauldrons.isRainFilled(block)) {
-                return WaterQuality.FRESH;
+            ThirstConfig.Drinking drinking = cfg.drinking();
+            // Active rain/storm makes every source dirty; reverts when it clears.
+            if (drinking.dirtyWhileRaining() && block.getWorld().hasStorm()) {
+                return WaterQuality.DIRTY;
+            }
+            // Rain/dripstone-filled cauldrons hold dirty runoff even after the rain stops.
+            if (cauldron && drinking.rainCauldronAlwaysDirty() && rainCauldrons.isRainFilled(block)) {
+                return WaterQuality.DIRTY;
             }
             return water.qualityAt(block.getLocation());
         }

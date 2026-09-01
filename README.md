@@ -48,7 +48,7 @@ Built in phases; see the checklist below.
   `/water get|setchunk|setregion`, unit + in-memory-SQLite tests
 - [x] **Phase 5** — bottle-based drinking: fill a glass bottle at a water source
   or cauldron → tagged *Bottle of Fresh/Dirty Water* → drink to restore thirst;
-  dirty water rolls a Salmonella stack; rain-filled cauldrons tracked as fresh
+  dirty water rolls a Salmonella stack; rain makes every source dirty
 - [ ] Phase 6 — Salmonella stacks, effects, decay, cure
 - [ ] Phase 7 — `/thirst` commands, permissions, config validation, `/thirst reload`
 - [ ] Phase 8 — HUD v2 (resource-pack droplet glyphs), optional
@@ -157,9 +157,14 @@ built-in default instead of breaking gameplay.
   stack count + `salmonella_ticks_remaining` in the PDC (capped at
   `stack-durations-seconds.size()`). *Phase 6* turns stacks into effects, decay
   and the cure — for now `/thirst get` just shows the number climb.
-- **Rain cauldrons:** `RainCauldronTracker` watches `CauldronLevelChangeEvent`
-  for `NATURAL_FILL` (rain / dripstone) and marks those cauldron positions FRESH
-  while `rain-cauldron-always-fresh` is on. In-memory; resets on restart.
+- **Rain makes water dirty:**
+  - `dirty-while-raining` (default on) — while a world has active rain/storm,
+    every source there fills DIRTY regardless of chunk. Checked at fill time, so
+    it reverts the moment the weather clears. Bottles keep their fill-time tag.
+  - `rain-cauldron-always-dirty` (default on) — `RainCauldronTracker` watches
+    `CauldronLevelChangeEvent` for `NATURAL_FILL` (rain / dripstone) and marks
+    those cauldrons DIRTY *permanently* (that's runoff sitting in the pot, not a
+    live source). In-memory; resets on restart.
 - **Creative** players fill without consuming the bottle or emptying the cauldron.
 - New config: `drinking.fresh-bottle-name` / `dirty-bottle-name` (MiniMessage).
 - Not unit-testable (ItemStack needs a running server) — the config maths behind

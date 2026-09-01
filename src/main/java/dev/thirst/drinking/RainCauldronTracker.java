@@ -13,12 +13,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Remembers which water cauldrons were filled by rain or dripstone rather than
- * by a bucket, so {@code rain-cauldron-always-fresh} can treat those as
- * {@link dev.thirst.water.WaterQuality#FRESH}.
+ * by a bucket, so {@code rain-cauldron-always-dirty} can treat those as
+ * {@link dev.thirst.water.WaterQuality#DIRTY} runoff — even after the rain stops.
  *
- * <p>In-memory only — the set is lost on restart. That is acceptable for an
- * optional stretch feature; a restarted server just falls back to the chunk's
- * quality for previously rain-filled cauldrons until they refill.
+ * <p>In-memory only — the set is lost on restart. A restarted server just falls
+ * back to the chunk's quality for previously rain-filled cauldrons until they
+ * refill.
  */
 public final class RainCauldronTracker implements Listener {
 
