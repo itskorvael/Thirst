@@ -1,9 +1,11 @@
 package dev.thirst.hud;
 
 import dev.thirst.config.ThirstConfig;
+import dev.thirst.integration.ActionBarSegment;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 import java.util.UUID;
@@ -17,23 +19,41 @@ import java.util.concurrent.ConcurrentHashMap;
  * lets other plugins ask Thirst to skip its update briefly (see
  * {@link ThirstHudTask#requestActionBarYield}). Automatic detection of a
  * third-party plugin's action-bar packets is not possible through the public
- * Paper API, so this is the extent of the "yield" behaviour.
+ * Paper API, so this — plus the optional {@code hud.external-segment} — is the
+ * extent of the coexistence handling.
  */
 final class ActionBarHudRenderer implements HudRenderer {
 
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
+    private final @Nullable ActionBarSegment externalSegment;
 
     /** Player UUID -> {@code System.currentTimeMillis()} until which to stay quiet. Written from other threads. */
     private final Map<UUID, Long> yieldUntil = new ConcurrentHashMap<>();
+
+    ActionBarHudRenderer(@Nullable ActionBarSegment externalSegment) {
+        this.externalSegment = externalSegment;
+    }
 
     @Override
     public void update(Player player, int level, ThirstConfig config) {
         if (!config.actionbarOverwriteOthers() && isYielding(player.getUniqueId())) {
             return;
         }
-        Component text = miniMessage.deserialize(
+
+        Component bar = miniMessage.deserialize(
                 ThirstHudFormatter.render(level, config.thirst(), config.hud()));
-        player.sendActionBar(text);
+
+        Component message = bar;
+        if (externalSegment != null) {
+            Component external = externalSegment.resolve(player).orElse(null);
+            if (external != null) {
+                ThirstConfig.ExternalSegment settings = config.hud().externalSegment();
+                Component separator = miniMessage.deserialize(settings.separator());
+                message = ActionBarComposer.compose(bar, external, separator, settings.placeBefore());
+            }
+        }
+
+        player.sendActionBar(message);
     }
 
     @Override

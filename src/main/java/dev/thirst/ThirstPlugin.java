@@ -3,6 +3,8 @@ package dev.thirst;
 import dev.thirst.command.ThirstCommand;
 import dev.thirst.config.ThirstConfig;
 import dev.thirst.hud.ThirstHudTask;
+import dev.thirst.integration.ActionBarSegment;
+import dev.thirst.integration.PlaceholderApiSegment;
 import dev.thirst.listener.ThirstExhaustionListener;
 import dev.thirst.listener.ThirstLifecycleListener;
 import dev.thirst.thirst.ThirstKeys;
@@ -51,7 +53,7 @@ public final class ThirstPlugin extends JavaPlugin {
             thirstManager.load(player);
         }
 
-        this.hudTask = new ThirstHudTask(this, thirstManager, this::config);
+        this.hudTask = new ThirstHudTask(this, thirstManager, this::config, resolveExternalSegment());
 
         getServer().getPluginManager().registerEvents(
                 new ThirstLifecycleListener(thirstManager, hudTask), this);
@@ -118,6 +120,23 @@ public final class ThirstPlugin extends JavaPlugin {
             throw new IllegalStateException("ThirstHudTask accessed before enable / after disable");
         }
         return task;
+    }
+
+    /**
+     * Builds the {@code hud.external-segment} source if PlaceholderAPI is
+     * present; otherwise returns {@code null} (and warns if the feature was
+     * switched on without it).
+     */
+    private @Nullable ActionBarSegment resolveExternalSegment() {
+        if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            getLogger().info("PlaceholderAPI detected — hud.external-segment is available.");
+            return new PlaceholderApiSegment(this::config);
+        }
+        if (config.hud().externalSegment().enabled()) {
+            getLogger().warning("hud.external-segment is enabled but PlaceholderAPI is not "
+                    + "installed; the extra segment will not be shown.");
+        }
+        return null;
     }
 
     /**

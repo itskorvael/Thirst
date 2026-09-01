@@ -8,6 +8,15 @@ authors:
   - Thirst contributors
 website: https://github.com/example/thirst
 
+# Optional: used only by hud.external-segment. Thirst loads and runs fine
+# without it.
+dependencies:
+  server:
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
+
 # Commands are registered at runtime through the Paper/Brigadier lifecycle API
 # (added in a later phase), so they are intentionally not declared here.
 

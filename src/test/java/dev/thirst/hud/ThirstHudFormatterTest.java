@@ -22,7 +22,8 @@ class ThirstHudFormatterTest {
     }
 
     private static ThirstConfig.Hud hud(BarStyle style, int segments, String label) {
-        return new ThirstConfig.Hud(30, style, segments, "<aqua>", "<red>", 3000L, label);
+        ThirstConfig.ExternalSegment none = new ThirstConfig.ExternalSegment(false, "", true, " | ");
+        return new ThirstConfig.Hud(30, style, segments, "<aqua>", "<red>", 3000L, label, none);
     }
 
     // ── critical detection ──────────────────────────────────────────────────

@@ -2,6 +2,7 @@ package dev.thirst.hud;
 
 import dev.thirst.config.HudMode;
 import dev.thirst.config.ThirstConfig;
+import dev.thirst.integration.ActionBarSegment;
 import dev.thirst.thirst.ThirstManager;
 import dev.thirst.thirst.ThirstRules;
 import org.bukkit.entity.Player;
@@ -27,16 +28,22 @@ public final class ThirstHudTask implements Runnable {
     private final ThirstManager manager;
     private final Supplier<ThirstConfig> config;
 
-    private final ActionBarHudRenderer actionBar = new ActionBarHudRenderer();
+    private final ActionBarHudRenderer actionBar;
     private final BossBarHudRenderer bossBar = new BossBarHudRenderer();
 
     private @Nullable BukkitTask handle;
     private boolean warnedResourcePackFallback;
 
-    public ThirstHudTask(JavaPlugin plugin, ThirstManager manager, Supplier<ThirstConfig> config) {
+    /**
+     * @param externalSegment source for {@code hud.external-segment}, or {@code null}
+     *                        when PlaceholderAPI is absent
+     */
+    public ThirstHudTask(JavaPlugin plugin, ThirstManager manager, Supplier<ThirstConfig> config,
+                         @Nullable ActionBarSegment externalSegment) {
         this.plugin = plugin;
         this.manager = manager;
         this.config = config;
+        this.actionBar = new ActionBarHudRenderer(externalSegment);
     }
 
     public void start() {

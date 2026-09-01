@@ -10,6 +10,15 @@ repositories {
     maven("https://repo.papermc.io/repository/maven-public/") {
         name = "papermc"
     }
+    maven("https://repo.extendedclip.com/releases/") {
+        name = "placeholderapi"
+    }
+}
+
+// Let tests use the same API jars the main sources compile against
+// (paper-api / adventure / PlaceholderAPI), which are otherwise compileOnly.
+configurations.testImplementation {
+    extendsFrom(configurations.compileOnly.get())
 }
 
 dependencies {
@@ -21,6 +30,11 @@ dependencies {
     // Not shaded: it is pulled in at runtime by ThirstPluginLoader via Paper's
     // library loader, so it stays compileOnly here.
     compileOnly("org.xerial:sqlite-jdbc:3.53.4.0")
+
+    // Optional soft-dependency for hud.external-segment (e.g. RealisticSeasons
+    // temperature in the same action bar). Guarded at runtime by an
+    // isPluginEnabled("PlaceholderAPI") check; declared soft in paper-plugin.yml.
+    compileOnly("me.clip:placeholderapi:2.12.3")
 
     testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")

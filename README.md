@@ -12,6 +12,7 @@ dirty-water illness (Salmonella).
 | Server | Paper **26.1.2** (`api-version: '26.1'`) |
 | Java | **25** (Minecraft 26.1+ requires Java 25 — Java 21 will not run it) |
 | Build | Gradle wrapper (9.7.1), bundled |
+| Optional | PlaceholderAPI — only for `hud.external-segment` |
 
 > The original spec targeted "Paper 1.21.x / Java 21". Mojang switched to
 > year-based versioning in 2026; the `26.1` drop the build pins is the successor
@@ -40,7 +41,8 @@ Built in phases; see the checklist below.
   minimal `/thirst get|set|reload`
 - [x] **Phase 3** — HUD: action-bar text (bar or percent, blue → red at critical),
   `BOSSBAR` debug/fallback mode, pluggable `HudRenderer` strategy for the future
-  resource-pack mode, `ThirstHudFormatter` pure functions + unit tests
+  resource-pack mode, `ThirstHudFormatter` pure functions + unit tests, optional
+  PlaceholderAPI `hud.external-segment` (share the action bar with RealisticSeasons)
 - [ ] Phase 4 — per-chunk water quality (SQLite schema, async load/save, cache, `/water`)
 - [ ] Phase 5 — bottle-based drinking (fill at a source → Clean/Dirty Water bottle → drink)
 - [ ] Phase 6 — Salmonella stacks, effects, decay, cure
@@ -87,11 +89,40 @@ built-in default instead of breaking gameplay.
 - **Action-bar "yield" is cooperative, not automatic.** Paper exposes no way to
   detect another plugin's outgoing action-bar packets, so
   `actionbar-overwrite-others: false` cannot magically notice a third-party HUD.
-  What it does: a plugin that depends on Thirst can call
-  `((ThirstPlugin) Bukkit.getPluginManager().getPlugin("Thirst")).hud()
-  .requestActionBarYield(player[, millis])` before sending its own text, and
-  Thirst will stay quiet for that window. If Thirst is the only action-bar user
-  on your server (the common case), set `actionbar-overwrite-others: true`.
+  Three ways to coexist, best first:
+  1. `hud.external-segment` — pull the other plugin's text in via PlaceholderAPI
+     and render both on one line (see below). One plugin owns the slot.
+  2. A plugin that depends on Thirst can call
+     `((ThirstPlugin) Bukkit.getPluginManager().getPlugin("Thirst")).hud()
+     .requestActionBarYield(player[, millis])` before its own send.
+  3. If Thirst is the only action-bar user (common), set
+     `actionbar-overwrite-others: true`.
+
+### Sharing the action bar with RealisticSeasons (or any plugin)
+
+`hud.external-segment` composes an extra bit of text — resolved from a
+PlaceholderAPI placeholder — onto the same action-bar line as the thirst bar, so
+the two plugins don't fight over the slot. Needs **PlaceholderAPI**; Thirst runs
+fine without it (the section is just ignored). Action-bar HUD modes only.
+
+For RealisticSeasons:
+
+1. In **RealisticSeasons'** config, turn its own action bar off:
+   `display → temperature → actionbar: false`.
+2. In **Thirst's** `config.yml`:
+   ```yaml
+   hud:
+     external-segment:
+       enabled: true
+       placeholder: "%rs_temperaturecolor%%rs_temperature%"
+       place-before: true
+       separator: " <dark_gray>|</dark_gray> "
+   ```
+3. `/thirst reload`.
+
+Result: `22°C | [||||||----]`. Legacy colour codes (`&` or `§`) in the resolved
+placeholder are honoured; the separator is MiniMessage. Any PlaceholderAPI
+string works here, not just RealisticSeasons'.
 - **HUD colours / bar characters** go through MiniMessage, so `color-normal` /
   `color-critical` accept hex and gradients, not just named colours.
 - Boss-bar mode uses the **Adventure `BossBar`** API (per-player, shown/hidden

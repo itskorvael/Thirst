@@ -42,6 +42,25 @@ hud:
   color-critical: "<red>"
   # Text shown next to the percent (PERCENT style only). Blank hides it.
   label: "Thirst"
+
+  # Show text from another plugin on the same action-bar line as the thirst bar,
+  # so the two don't fight over the slot. Requires PlaceholderAPI (Thirst still
+  # runs fine without it — this section is just ignored). ACTIONBAR modes only.
+  #
+  # RealisticSeasons example — in RealisticSeasons' own config set
+  # display -> temperature -> actionbar: false, then here:
+  #   enabled: true
+  #   placeholder: "%rs_temperaturecolor%%rs_temperature%"
+  external-segment:
+    enabled: false
+    # Any PlaceholderAPI string. Legacy colour codes (& or §) in the result are
+    # honoured.
+    placeholder: ""
+    # true  -> "<external> | [||||||----]"
+    # false -> "[||||||----] | <external>"
+    place-before: true
+    # MiniMessage, shown between the external text and the thirst bar.
+    separator: " <dark_gray>|</dark_gray> "
   # Default duration (ms) used when another plugin calls
   # ThirstHudTask#requestActionBarYield(player) with no explicit duration.
   #

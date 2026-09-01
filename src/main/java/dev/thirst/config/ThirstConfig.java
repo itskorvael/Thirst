@@ -39,7 +39,26 @@ public record ThirstConfig(
             String colorNormal,
             String colorCritical,
             long yieldWindowMillis,
-            String label
+            String label,
+            ExternalSegment externalSegment
+    ) {}
+
+    /**
+     * Optional extra text shown alongside the action-bar thirst bar, pulled from
+     * a PlaceholderAPI placeholder — lets Thirst and another action-bar plugin
+     * (e.g. RealisticSeasons) share one line instead of clobbering each other.
+     * Action-bar mode only.
+     *
+     * @param enabled     whether to resolve and show the segment
+     * @param placeholder PlaceholderAPI string, e.g. {@code "%rs_temperaturecolor%%rs_temperature%"}
+     * @param placeBefore {@code true} = external text then thirst bar; {@code false} = the reverse
+     * @param separator   MiniMessage string placed between the two
+     */
+    public record ExternalSegment(
+            boolean enabled,
+            String placeholder,
+            boolean placeBefore,
+            String separator
     ) {}
 
     /** Optional water-quality wand tool. */
@@ -138,6 +157,13 @@ public record ThirstConfig(
         String packUrl = root.getString("resource-pack-url", "");
 
         Reader hudSec = root.section("hud");
+        Reader externalSec = hudSec.section("external-segment");
+        ExternalSegment externalSegment = new ExternalSegment(
+                externalSec.getBoolean("enabled", false),
+                externalSec.getString("placeholder", ""),
+                externalSec.getBoolean("place-before", true),
+                externalSec.getString("separator", " <dark_gray>|</dark_gray> ")
+        );
         Hud hud = new Hud(
                 hudSec.getInt("update-interval-ticks", 30, 1, 200),
                 hudSec.getEnum("style", BarStyle.BAR, BarStyle::parse),
@@ -145,7 +171,8 @@ public record ThirstConfig(
                 hudSec.getNonBlankString("color-normal", "<aqua>"),
                 hudSec.getNonBlankString("color-critical", "<red>"),
                 hudSec.getLong("yield-window-millis", 3000L, 0L, 60_000L),
-                hudSec.getString("label", "Thirst")
+                hudSec.getString("label", "Thirst"),
+                externalSegment
         );
 
         WaterQuality defaultQuality =
