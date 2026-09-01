@@ -60,8 +60,9 @@ thirst:
   # Seconds of pure idle time to lose 1 thirst point with zero exhaustion.
   base-drain-interval-seconds: 120
 
-  # Below this % of max, the HUD turns red (see hud.color-critical).
-  critical-threshold-percent: 10
+  # Below this % of max, the HUD turns red (see hud.color-critical). Default
+  # matches vanilla hunger's own "sprint disabled" cutoff: hunger level 6/20 = 30%.
+  critical-threshold-percent: 30
 
   # Damage taken while at 0 thirst.
   starvation-damage-enabled: true
