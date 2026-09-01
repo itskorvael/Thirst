@@ -113,7 +113,9 @@ public record ThirstConfig(
             boolean rainCauldronAlwaysFresh,
             boolean rainTrickleEnabled,
             int rainTrickleAmount,
-            int rainTrickleIntervalSeconds
+            int rainTrickleIntervalSeconds,
+            String freshBottleName,
+            String dirtyBottleName
     ) {
         public int restoreFor(WaterQuality quality) {
             return quality == WaterQuality.FRESH ? freshWaterRestoreAmount : dirtyWaterRestoreAmount;
@@ -231,7 +233,9 @@ public record ThirstConfig(
                 drinkSec.getBoolean("rain-cauldron-always-fresh", true),
                 drinkSec.getBoolean("rain-trickle-enabled", false),
                 drinkSec.getInt("rain-trickle-amount", 1, 0, max),
-                drinkSec.getInt("rain-trickle-interval-seconds", 20, 1, 3600)
+                drinkSec.getInt("rain-trickle-interval-seconds", 20, 1, 3600),
+                drinkSec.getNonBlankString("fresh-bottle-name", "<aqua>Bottle of Fresh Water"),
+                drinkSec.getNonBlankString("dirty-bottle-name", "<color:#8a7f4a>Bottle of Dirty Water")
         );
 
         Reader salSec = root.section("salmonella");

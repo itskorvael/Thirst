@@ -3,6 +3,9 @@ package dev.thirst;
 import dev.thirst.command.ThirstCommand;
 import dev.thirst.command.WaterCommand;
 import dev.thirst.config.ThirstConfig;
+import dev.thirst.drinking.DrinkingListener;
+import dev.thirst.drinking.RainCauldronTracker;
+import dev.thirst.drinking.WaterBottles;
 import dev.thirst.hud.ThirstHudTask;
 import dev.thirst.integration.ActionBarSegment;
 import dev.thirst.integration.PlaceholderApiSegment;
@@ -36,8 +39,10 @@ import org.jspecify.annotations.Nullable;
  *       bar in debug/fallback mode</li>
  *   <li>Phase 4 — per-chunk water quality ({@link WaterQualityService} over
  *       {@link WaterQualityStore} SQLite) and the {@code /water} commands</li>
+ *   <li>Phase 5 — bottle-based drinking
+ *       ({@link dev.thirst.drinking.DrinkingListener})</li>
  * </ol>
- * Still to come: drinking (5), Salmonella (6), full commands (7).
+ * Still to come: Salmonella (6), full commands (7).
  */
 @NullMarked
 public final class ThirstPlugin extends JavaPlugin {
@@ -85,6 +90,12 @@ public final class ThirstPlugin extends JavaPlugin {
                 new ThirstExhaustionListener(thirstManager, this::config), this);
         getServer().getPluginManager().registerEvents(
                 new ThirstSprintListener(thirstManager, this::config, speedModifier), this);
+
+        WaterBottles waterBottles = new WaterBottles(this, this::config);
+        RainCauldronTracker rainCauldronTracker = new RainCauldronTracker();
+        getServer().getPluginManager().registerEvents(rainCauldronTracker, this);
+        getServer().getPluginManager().registerEvents(new DrinkingListener(
+                thirstManager, waterQuality, waterBottles, rainCauldronTracker, this::config), this);
 
         this.tickTask = new ThirstTickTask(this, thirstManager, this::config);
         this.tickTask.start();

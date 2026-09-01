@@ -149,16 +149,21 @@ thirst:
 # filled in. Drink that bottle later to restore thirst. There is no
 # drink-straight-from-the-block interaction.
 drinking:
+  # Ticks a filled bottle is locked after any water bottle is drunk (a vanilla
+  # use-cooldown group, so the client shows the sweep). Also enforced server-side.
   cooldown-ticks: 40
   fresh-water-restore-amount: 4
   dirty-water-restore-amount: 2
   # Chance (0.0–1.0) that drinking a Dirty Water bottle causes / stacks Salmonella.
   salmonella-chance: 0.35
-  # Water drawn from a cauldron filled by rain is always FRESH, regardless of the
-  # chunk's quality flag.
+  # Water drawn from a cauldron filled by rain (or dripstone) is always FRESH,
+  # regardless of the chunk's quality flag. Tracked in memory; resets on restart.
   rain-cauldron-always-fresh: true
+  # Names of the filled bottles (MiniMessage).
+  fresh-bottle-name: "<aqua>Bottle of Fresh Water"
+  dirty-bottle-name: "<color:#8a7f4a>Bottle of Dirty Water"
 
-  # Optional stretch goal: standing in rain slowly restores thirst.
+  # Optional stretch goal (Phase 7): standing in rain slowly restores thirst.
   rain-trickle-enabled: false
   rain-trickle-amount: 1
   rain-trickle-interval-seconds: 20
