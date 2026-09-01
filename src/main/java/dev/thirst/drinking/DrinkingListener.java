@@ -110,7 +110,9 @@ public final class DrinkingListener implements Listener {
     }
 
     private @Nullable FillTarget resolveFillTarget(Player player) {
-        RayTraceResult ray = player.rayTraceBlocks(FILL_REACH, FluidCollisionMode.SOURCE_ONLY);
+        // ALWAYS (not SOURCE_ONLY): a bottle fills from any water block —
+        // natural or placed, source or flowing.
+        RayTraceResult ray = player.rayTraceBlocks(FILL_REACH, FluidCollisionMode.ALWAYS);
         Block hit = ray == null ? null : ray.getHitBlock();
         if (hit == null) {
             return null;
@@ -118,7 +120,7 @@ public final class DrinkingListener implements Listener {
         if (hit.getType() == Material.WATER_CAULDRON) {
             return new FillTarget(hit, true);
         }
-        if (hit.getType() == Material.WATER && isSource(hit)) {
+        if (hit.getType() == Material.WATER) {
             return new FillTarget(hit, false);
         }
         return null;
@@ -187,10 +189,6 @@ public final class DrinkingListener implements Listener {
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
-
-    private static boolean isSource(Block block) {
-        return block.getBlockData() instanceof Levelled levelled && levelled.getLevel() == 0;
-    }
 
     private static void giveOrDrop(Player player, ItemStack item) {
         player.getInventory().addItem(item).values().forEach(leftover ->

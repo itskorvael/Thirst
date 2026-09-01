@@ -146,11 +146,13 @@ built-in default instead of breaking gameplay.
 ### Phase 5 design notes (for review)
 
 - **Bottle-only for *drinking*, no drink-from-block** — per the earlier
-  maintainer decision. Right-clicking a water source (via a `SOURCE_ONLY` ray
-  trace, so flowing water is excluded) or cauldron with an empty `GLASS_BOTTLE`
-  cancels the vanilla fill and gives a tagged bottle. A **bucket**
-  (`PlayerBucketFillEvent`) is tagged the same way — *Bucket of Fresh/Dirty
-  Water* — via `WaterContainers`.
+  maintainer decision. Right-clicking **any water block** — natural or placed,
+  source or flowing (`FluidCollisionMode.ALWAYS` ray trace, unlike vanilla which
+  is source-only) — or a cauldron with an empty `GLASS_BOTTLE` cancels the
+  vanilla fill and gives a tagged bottle. Its quality is the chunk's (or DIRTY
+  while raining, or the cauldron's tracked quality) — loose water blocks are not
+  individually tracked. A **bucket** (`PlayerBucketFillEvent`) is tagged the
+  same way — *Bucket of Fresh/Dirty Water* — but stays vanilla source-only.
 - **The bottle is a real water potion** (`PotionType.WATER`) with a PDC quality
   tag, a tint, a config name, and a `USE_COOLDOWN` component (group
   `thirst:water_bottle`) sized from `drinking.cooldown-ticks`. Drinking it uses
