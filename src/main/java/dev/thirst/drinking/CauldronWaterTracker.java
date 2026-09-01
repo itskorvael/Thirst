@@ -51,11 +51,15 @@ public final class CauldronWaterTracker implements Listener {
         water.remove(BlockPos.of(cauldron));
     }
 
-    /** Combine two water qualities: any dirty part makes the whole dirty. */
+    /** Combine two water qualities: dirty beats fresh beats neutral. */
     static WaterQuality mix(WaterQuality existing, WaterQuality added) {
-        return existing == WaterQuality.DIRTY || added == WaterQuality.DIRTY
-                ? WaterQuality.DIRTY
-                : WaterQuality.FRESH;
+        if (existing == WaterQuality.DIRTY || added == WaterQuality.DIRTY) {
+            return WaterQuality.DIRTY;
+        }
+        if (existing == WaterQuality.FRESH || added == WaterQuality.FRESH) {
+            return WaterQuality.FRESH;
+        }
+        return WaterQuality.NEUTRAL;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

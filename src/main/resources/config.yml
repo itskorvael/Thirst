@@ -74,16 +74,21 @@ hud:
   yield-window-millis: 3000
 
 # ─── Water quality ────────────────────────────────────────────────────────────
-# Quality of any chunk an admin has not explicitly painted. FRESH | DIRTY
+# Quality of any chunk an admin has not explicitly painted. FRESH | NEUTRAL | DIRTY
+#   FRESH   — safe, restores the most thirst
+#   NEUTRAL — no established quality (the sensible default for land with no
+#             natural water). Pouring a tagged Bucket of Fresh/Dirty Water into
+#             a still-NEUTRAL chunk sets that chunk to the bucket's quality.
+#   DIRTY   — restores the least, can cause Salmonella
 # Per-chunk overrides are stored in water_quality.db (SQLite) in the plugin
 # folder, loaded into memory on startup and written back asynchronously.
 #
 # Commands (permission thirst.admin.water):
-#   /water get                                  quality of the chunk you're in
-#   /water setchunk <fresh|dirty>               paint the chunk you're standing in
-#   /water setregion <fresh|dirty> <x1> <z1> <x2> <z2> [world]
-#                                               bulk-paint a block-coord rectangle
-default-water-quality: DIRTY
+#   /water get                                       quality of the chunk you're in
+#   /water setchunk <fresh|neutral|dirty>            paint the chunk you're standing in
+#   /water setregion <fresh|neutral|dirty> <x1> <z1> <x2> <z2> [world]
+#                                                    bulk-paint a block-coord rectangle
+default-water-quality: NEUTRAL
 
 water:
   # Safety cap on /water setregion — the command is rejected if the rectangle
@@ -153,8 +158,10 @@ drinking:
   # use-cooldown group, so the client shows the sweep). Also enforced server-side.
   cooldown-ticks: 40
   fresh-water-restore-amount: 4
+  neutral-water-restore-amount: 3
   dirty-water-restore-amount: 2
   # Chance (0.0–1.0) that drinking a Dirty Water bottle causes / stacks Salmonella.
+  # (FRESH and NEUTRAL water never cause it.)
   salmonella-chance: 0.35
   # A cauldron holds the quality of whatever was poured in — a tagged bucket or
   # bottle carries its quality across; rain / dripstone fills it with dirty
@@ -167,8 +174,10 @@ drinking:
   dirty-while-raining: true
   # Item names for the filled containers (MiniMessage).
   fresh-bottle-name: "<aqua>Bottle of Fresh Water"
+  neutral-bottle-name: "<gray>Bottle of Water"
   dirty-bottle-name: "<color:#8a7f4a>Bottle of Dirty Water"
   fresh-bucket-name: "<aqua>Bucket of Fresh Water"
+  neutral-bucket-name: "<gray>Bucket of Water"
   dirty-bucket-name: "<color:#8a7f4a>Bucket of Dirty Water"
 
   # Optional stretch goal (Phase 7): standing in rain slowly restores thirst.

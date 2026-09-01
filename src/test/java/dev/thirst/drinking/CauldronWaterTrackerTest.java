@@ -8,10 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class CauldronWaterTrackerTest {
 
     @Test
-    void mixingIsDirtyIfEitherPartIsDirty() {
-        assertEquals(WaterQuality.FRESH, CauldronWaterTracker.mix(WaterQuality.FRESH, WaterQuality.FRESH));
+    void mixingDirtyBeatsFreshBeatsNeutral() {
         assertEquals(WaterQuality.DIRTY, CauldronWaterTracker.mix(WaterQuality.FRESH, WaterQuality.DIRTY));
-        assertEquals(WaterQuality.DIRTY, CauldronWaterTracker.mix(WaterQuality.DIRTY, WaterQuality.FRESH));
+        assertEquals(WaterQuality.DIRTY, CauldronWaterTracker.mix(WaterQuality.DIRTY, WaterQuality.NEUTRAL));
         assertEquals(WaterQuality.DIRTY, CauldronWaterTracker.mix(WaterQuality.DIRTY, WaterQuality.DIRTY));
+
+        assertEquals(WaterQuality.FRESH, CauldronWaterTracker.mix(WaterQuality.FRESH, WaterQuality.FRESH));
+        assertEquals(WaterQuality.FRESH, CauldronWaterTracker.mix(WaterQuality.NEUTRAL, WaterQuality.FRESH));
+
+        assertEquals(WaterQuality.NEUTRAL, CauldronWaterTracker.mix(WaterQuality.NEUTRAL, WaterQuality.NEUTRAL));
     }
 }

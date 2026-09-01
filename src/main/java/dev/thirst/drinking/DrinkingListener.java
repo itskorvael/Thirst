@@ -168,12 +168,16 @@ public final class DrinkingListener implements Listener {
         Location loc = player.getLocation();
         player.getWorld().playSound(loc, Sound.ENTITY_GENERIC_DRINK, 1.0f, 1.0f);
 
-        if (quality == WaterQuality.FRESH) {
-            player.getWorld().spawnParticle(Particle.FALLING_WATER,
+        switch (quality) {
+            case FRESH -> player.getWorld().spawnParticle(Particle.FALLING_WATER,
                     loc.clone().add(0.0, 1.4, 0.0), 8, 0.25, 0.15, 0.25, 0.0);
-        } else {
-            player.getWorld().playSound(loc, Sound.ENTITY_PLAYER_BURP, 0.7f, 1.0f);
-            rollSalmonella(player, cfg);
+            case DIRTY -> {
+                player.getWorld().playSound(loc, Sound.ENTITY_PLAYER_BURP, 0.7f, 1.0f);
+                rollSalmonella(player, cfg);
+            }
+            case NEUTRAL -> {
+                // plain water — just the drink sound
+            }
         }
     }
 

@@ -34,7 +34,7 @@ public final class WaterQualityStore {
                 world_name TEXT    NOT NULL,
                 chunk_x    INTEGER NOT NULL,
                 chunk_z    INTEGER NOT NULL,
-                quality    TEXT    NOT NULL CHECK (quality IN ('FRESH', 'DIRTY')),
+                quality    TEXT    NOT NULL CHECK (quality IN ('FRESH', 'NEUTRAL', 'DIRTY')),
                 PRIMARY KEY (world_name, chunk_x, chunk_z)
             )
             """;
@@ -78,18 +78,19 @@ public final class WaterQualityStore {
             try (Statement statement = conn.createStatement()) {
                 statement.execute(CREATE_TABLE);
             }
-            migrateLegacyCleanQuality(conn);
+            migrateSchema(conn);
             this.connection = conn;
         }).join();
     }
 
     /**
-     * Older builds stored the "safe" quality as {@code CLEAN} with a matching
-     * {@code CHECK} constraint. Rebuild such a table so {@code CLEAN} becomes
-     * {@code FRESH} and the constraint allows it. No-op on fresh or already-
-     * migrated databases.
+     * Bring an older schema up to date: earlier builds stored the safe quality
+     * as {@code CLEAN}, and the {@code CHECK} constraint has since gained
+     * {@code NEUTRAL}. Rebuild the table (remapping {@code CLEAN -> FRESH}) when
+     * its stored {@code CREATE} statement predates {@code NEUTRAL}. No-op on a
+     * fresh or already-current database.
      */
-    private void migrateLegacyCleanQuality(Connection conn) throws SQLException {
+    private void migrateSchema(Connection conn) throws SQLException {
         String tableSql = null;
         try (Statement statement = conn.createStatement();
              ResultSet rs = statement.executeQuery(
@@ -98,7 +99,7 @@ public final class WaterQualityStore {
                 tableSql = rs.getString(1);
             }
         }
-        if (tableSql == null || !tableSql.contains("'CLEAN'")) {
+        if (tableSql == null || tableSql.contains("'NEUTRAL'")) {
             return;
         }
 
@@ -115,7 +116,7 @@ public final class WaterQualityStore {
                     """);
             statement.execute("DROP TABLE chunk_water_quality_legacy");
             conn.commit();
-            logger.info("Migrated water-quality database: CLEAN -> FRESH");
+            logger.info("Migrated the water-quality database to the current schema");
         } catch (SQLException ex) {
             conn.rollback();
             throw ex;

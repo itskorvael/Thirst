@@ -32,6 +32,7 @@ import java.util.function.Supplier;
 public final class WaterContainers {
 
     private static final Color FRESH_COLOUR = Color.fromRGB(0x3F76E4);
+    private static final Color NEUTRAL_COLOUR = Color.fromRGB(0x3E5A9A);
     private static final Color DIRTY_COLOUR = Color.fromRGB(0x6B6246);
 
     private final NamespacedKey qualityKey;
@@ -51,14 +52,12 @@ public final class WaterContainers {
     @SuppressWarnings("UnstableApiUsage")
     public ItemStack createBottle(WaterQuality quality) {
         ThirstConfig.Drinking drinking = config.get().drinking();
-        Component name = miniMessage.deserialize(quality == WaterQuality.FRESH
-                ? drinking.freshBottleName()
-                : drinking.dirtyBottleName());
+        Component name = miniMessage.deserialize(drinking.bottleName(quality));
 
         ItemStack item = ItemStack.of(Material.POTION);
         item.editMeta(PotionMeta.class, meta -> {
             meta.setBasePotionType(PotionType.WATER);
-            meta.setColor(quality == WaterQuality.FRESH ? FRESH_COLOUR : DIRTY_COLOUR);
+            meta.setColor(colourOf(quality));
             meta.itemName(name);
             meta.getPersistentDataContainer().set(qualityKey, PersistentDataType.STRING, quality.name());
         });
@@ -74,10 +73,7 @@ public final class WaterContainers {
 
     /** A single water bucket of the given quality. */
     public ItemStack createBucket(WaterQuality quality) {
-        ThirstConfig.Drinking drinking = config.get().drinking();
-        Component name = miniMessage.deserialize(quality == WaterQuality.FRESH
-                ? drinking.freshBucketName()
-                : drinking.dirtyBucketName());
+        Component name = miniMessage.deserialize(config.get().drinking().bucketName(quality));
 
         ItemStack item = ItemStack.of(Material.WATER_BUCKET);
         item.editMeta(meta -> {
@@ -105,4 +101,13 @@ public final class WaterContainers {
                 .get(qualityKey, PersistentDataType.STRING);
         return WaterQuality.parse(raw);
     }
+
+    private static Color colourOf(WaterQuality quality) {
+        return switch (quality) {
+            case FRESH -> FRESH_COLOUR;
+            case NEUTRAL -> NEUTRAL_COLOUR;
+            case DIRTY -> DIRTY_COLOUR;
+        };
+    }
 }
+

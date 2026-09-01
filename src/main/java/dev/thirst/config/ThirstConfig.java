@@ -108,6 +108,7 @@ public record ThirstConfig(
     public record Drinking(
             int cooldownTicks,
             int freshWaterRestoreAmount,
+            int neutralWaterRestoreAmount,
             int dirtyWaterRestoreAmount,
             double salmonellaChance,
             boolean rainCauldronAlwaysDirty,
@@ -116,12 +117,34 @@ public record ThirstConfig(
             int rainTrickleAmount,
             int rainTrickleIntervalSeconds,
             String freshBottleName,
+            String neutralBottleName,
             String dirtyBottleName,
             String freshBucketName,
+            String neutralBucketName,
             String dirtyBucketName
     ) {
         public int restoreFor(WaterQuality quality) {
-            return quality == WaterQuality.FRESH ? freshWaterRestoreAmount : dirtyWaterRestoreAmount;
+            return switch (quality) {
+                case FRESH -> freshWaterRestoreAmount;
+                case NEUTRAL -> neutralWaterRestoreAmount;
+                case DIRTY -> dirtyWaterRestoreAmount;
+            };
+        }
+
+        public String bottleName(WaterQuality quality) {
+            return switch (quality) {
+                case FRESH -> freshBottleName;
+                case NEUTRAL -> neutralBottleName;
+                case DIRTY -> dirtyBottleName;
+            };
+        }
+
+        public String bucketName(WaterQuality quality) {
+            return switch (quality) {
+                case FRESH -> freshBucketName;
+                case NEUTRAL -> neutralBucketName;
+                case DIRTY -> dirtyBucketName;
+            };
         }
     }
 
@@ -190,7 +213,7 @@ public record ThirstConfig(
         );
 
         WaterQuality defaultQuality =
-                root.getEnum("default-water-quality", WaterQuality.DIRTY, WaterQuality::parse);
+                root.getEnum("default-water-quality", WaterQuality.NEUTRAL, WaterQuality::parse);
 
         Reader waterSec = root.section("water");
         Water water = new Water(
@@ -231,6 +254,7 @@ public record ThirstConfig(
         Drinking drinking = new Drinking(
                 drinkSec.getInt("cooldown-ticks", 40, 0, 72_000),
                 drinkSec.getInt("fresh-water-restore-amount", 4, 0, max),
+                drinkSec.getInt("neutral-water-restore-amount", 3, 0, max),
                 drinkSec.getInt("dirty-water-restore-amount", 2, 0, max),
                 drinkSec.getDouble("salmonella-chance", 0.35, 0.0, 1.0),
                 drinkSec.getBoolean("rain-cauldron-always-dirty", true),
@@ -239,8 +263,10 @@ public record ThirstConfig(
                 drinkSec.getInt("rain-trickle-amount", 1, 0, max),
                 drinkSec.getInt("rain-trickle-interval-seconds", 20, 1, 3600),
                 drinkSec.getNonBlankString("fresh-bottle-name", "<aqua>Bottle of Fresh Water"),
+                drinkSec.getNonBlankString("neutral-bottle-name", "<gray>Bottle of Water"),
                 drinkSec.getNonBlankString("dirty-bottle-name", "<color:#8a7f4a>Bottle of Dirty Water"),
                 drinkSec.getNonBlankString("fresh-bucket-name", "<aqua>Bucket of Fresh Water"),
+                drinkSec.getNonBlankString("neutral-bucket-name", "<gray>Bucket of Water"),
                 drinkSec.getNonBlankString("dirty-bucket-name", "<color:#8a7f4a>Bucket of Dirty Water")
         );
 

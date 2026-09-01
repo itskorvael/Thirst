@@ -5,21 +5,26 @@ import org.jspecify.annotations.Nullable;
 import java.util.Locale;
 
 /**
- * Quality flag applied per chunk (and copied onto filled water bottles).
+ * Quality flag applied per chunk (and copied onto filled water containers).
  *
- * <p>{@link #FRESH} water is safe and restores more thirst; {@link #DIRTY} water
- * restores less and can cause Salmonella. Chunks with no stored value fall back
- * to the {@code default-water-quality} config option.
+ * <ul>
+ *   <li>{@link #FRESH} — safe, restores the most thirst.</li>
+ *   <li>{@link #NEUTRAL} — no established quality; the default for chunks an
+ *       admin has not painted. Pouring water from a tagged bucket into a neutral
+ *       chunk sets the chunk to that quality. Restores a middling amount, no
+ *       illness.</li>
+ *   <li>{@link #DIRTY} — restores the least and can cause Salmonella.</li>
+ * </ul>
  */
 public enum WaterQuality {
     FRESH,
+    NEUTRAL,
     DIRTY;
 
     /**
-     * Parses a config / command token into a quality, case-insensitively. The
-     * legacy name {@code "clean"} is still accepted as an alias for {@link #FRESH}.
+     * Parses a config / command token, case-insensitively. The legacy name
+     * {@code "clean"} is still accepted as an alias for {@link #FRESH}.
      *
-     * @param raw the token, e.g. {@code "fresh"}; may be {@code null}
      * @return the matching quality, or {@code null} if {@code raw} is not valid
      */
     public static @Nullable WaterQuality parse(@Nullable String raw) {
@@ -28,6 +33,7 @@ public enum WaterQuality {
         }
         return switch (raw.trim().toUpperCase(Locale.ROOT)) {
             case "FRESH", "CLEAN" -> FRESH;
+            case "NEUTRAL" -> NEUTRAL;
             case "DIRTY" -> DIRTY;
             default -> null;
         };

@@ -29,8 +29,8 @@ import java.util.concurrent.CompletableFuture;
  *
  * <pre>
  *   /water get
- *   /water setchunk &lt;fresh|dirty&gt;
- *   /water setregion &lt;fresh|dirty&gt; &lt;x1&gt; &lt;z1&gt; &lt;x2&gt; &lt;z2&gt; [world]
+ *   /water setchunk &lt;fresh|neutral|dirty&gt;
+ *   /water setregion &lt;fresh|neutral|dirty&gt; &lt;x1&gt; &lt;z1&gt; &lt;x2&gt; &lt;z2&gt; [world]
  * </pre>
  *
  * <p>{@code get} / {@code setchunk} act on the chunk the sender is standing in
@@ -95,7 +95,7 @@ public final class WaterCommand {
         }
         WaterQuality quality = quality(ctx);
         if (quality == null) {
-            return fail(ctx, "Water quality must be 'fresh' or 'dirty'.");
+            return fail(ctx, "Water quality must be 'fresh', 'neutral' or 'dirty'.");
         }
         ChunkKey key = ChunkKey.fromLocation(player.getLocation());
         water.setChunk(key, quality);
@@ -110,14 +110,14 @@ public final class WaterCommand {
                                  WaterQualityService water, @Nullable World explicitWorld) {
         WaterQuality quality = quality(ctx);
         if (quality == null) {
-            return fail(ctx, "Water quality must be 'fresh' or 'dirty'.");
+            return fail(ctx, "Water quality must be 'fresh', 'neutral' or 'dirty'.");
         }
 
         World world = explicitWorld;
         if (world == null) {
             Player player = playerOrNull(ctx);
             if (player == null) {
-                return fail(ctx, "Specify a world: /water setregion <fresh|dirty> <x1> <z1> <x2> <z2> <world>");
+                return fail(ctx, "Specify a world: /water setregion <fresh|neutral|dirty> <x1> <z1> <x2> <z2> <world>");
             }
             world = player.getWorld();
         }
@@ -152,7 +152,7 @@ public final class WaterCommand {
     private static CompletableFuture<Suggestions> suggestQuality(
             CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
         String prefix = builder.getRemainingLowerCase();
-        for (String option : new String[]{"fresh", "dirty"}) {
+        for (String option : new String[]{"fresh", "neutral", "dirty"}) {
             if (option.startsWith(prefix)) {
                 builder.suggest(option);
             }
@@ -169,7 +169,11 @@ public final class WaterCommand {
     }
 
     private static NamedTextColor colourOf(WaterQuality quality) {
-        return quality == WaterQuality.FRESH ? NamedTextColor.AQUA : NamedTextColor.GOLD;
+        return switch (quality) {
+            case FRESH -> NamedTextColor.AQUA;
+            case NEUTRAL -> NamedTextColor.GRAY;
+            case DIRTY -> NamedTextColor.GOLD;
+        };
     }
 
     private static int fail(CommandContext<CommandSourceStack> ctx, String message) {

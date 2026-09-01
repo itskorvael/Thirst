@@ -2,8 +2,8 @@
 
 A Paper plugin that adds a thirst mechanic alongside vanilla hunger: a HUD
 indicator above the hotbar, exertion-based drain with starvation damage at zero,
-bottle-based drinking, per-chunk water quality (FRESH / DIRTY), and a stacking
-dirty-water illness (Salmonella).
+bottle-based drinking, per-chunk water quality (FRESH / NEUTRAL / DIRTY), and a
+stacking dirty-water illness (Salmonella).
 
 ## Requirements
 
@@ -46,10 +46,11 @@ Built in phases; see the checklist below.
 - [x] **Phase 4** — per-chunk water quality: SQLite store (async, single-thread
   connection), in-memory `Map<ChunkKey, WaterQuality>` cache with write-through,
   `/water get|setchunk|setregion`, unit + in-memory-SQLite tests
-- [x] **Phase 5** — bottle-based drinking: fill a glass bottle *or bucket* at a
-  water source or cauldron → tagged *Bottle/Bucket of Fresh/Dirty Water* → drink
-  to restore thirst; dirty water rolls a Salmonella stack; rain makes every
-  source dirty; cauldrons hold the quality of what's poured in
+- [x] **Phase 5** — bottle-based drinking: fill a glass bottle *or bucket* at any
+  water block or cauldron → tagged *Bottle/Bucket of Fresh/Neutral/Dirty Water* →
+  drink to restore thirst; dirty water rolls a Salmonella stack; rain makes every
+  source dirty; cauldrons hold the quality of what's poured in; pouring a tagged
+  bucket sets a `NEUTRAL` chunk's quality
 - [ ] Phase 6 — Salmonella stacks, effects, decay, cure
 - [ ] Phase 7 — `/thirst` commands, permissions, config validation, `/thirst reload`
 - [ ] Phase 8 — HUD v2 (resource-pack droplet glyphs), optional
@@ -120,8 +121,9 @@ built-in default instead of breaking gameplay.
 
 - **Storage:** SQLite (`water_quality.db` in the plugin folder), table
   `chunk_water_quality (world_name, chunk_x, chunk_z, quality)` with a
-  `CHECK (quality IN ('FRESH','DIRTY'))`. A legacy DB that used `CLEAN` is
-  rebuilt to `FRESH` on startup (`WaterQualityStore#migrateLegacyCleanQuality`).
+  `CHECK (quality IN ('FRESH','NEUTRAL','DIRTY'))`. An older DB whose stored
+  `CREATE` statement predates `NEUTRAL` (or used `CLEAN`) is rebuilt on startup
+  (`WaterQualityStore#migrateSchema`, remapping `CLEAN -> FRESH`).
 - **Threading:** one dedicated daemon thread owns a single JDBC connection
   (`SQLiteDataSource`, WAL, `synchronous=NORMAL`). Callers get
   `CompletableFuture`s; the main thread never blocks on the DB *except* the
@@ -130,13 +132,18 @@ built-in default instead of breaking gameplay.
   WaterQuality>` on enable (not lazy per-chunk, not per-`WorldLoadEvent` — a
   single server's DB is small and this is simpler; a world added later still has
   its rows because nothing filters by loaded worlds). Reads fall back to
-  `default-water-quality`. Writes hit the cache immediately and the DB async, so
-  a drink right after `/water setchunk` sees the new value.
+  `default-water-quality` (now **`NEUTRAL`**). Writes hit the cache immediately
+  and the DB async, so a drink right after `/water setchunk` sees the new value.
+- **`NEUTRAL`** is "no established quality" — the default for land with no
+  natural water. Pouring a tagged *Bucket of Fresh/Neutral/Dirty Water* into a chunk
+  that is still `NEUTRAL` (`BucketListener#onBucketEmpty`) sets that chunk to the
+  bucket's quality (chunk-level, not per-block). Drinking neutral water restores
+  `neutral-water-restore-amount` (default 3) and never causes Salmonella.
 - **`/water setregion`** takes two **block**-coordinate corners (what admins
   read off F3), converts to a chunk rectangle, and writes it in one transaction.
   Guarded by `water.max-region-chunks` (default 50 000).
-- **`/water set <fresh|dirty> [radius]` from the original spec is dropped** in
-  favour of `setchunk` (per an earlier maintainer decision).
+- **`/water set <fresh|neutral|dirty> [radius]` from the original spec is
+  dropped** in favour of `setchunk` (per an earlier maintainer decision).
 - `ChunkKey` / `ChunkArea` conversions are pure and unit-tested; the store is
   tested against an in-memory SQLite DB.
 - On Java 25, sqlite-jdbc loading its native library prints a one-line
@@ -152,7 +159,7 @@ built-in default instead of breaking gameplay.
   vanilla fill and gives a tagged bottle. Its quality is the chunk's (or DIRTY
   while raining, or the cauldron's tracked quality) — loose water blocks are not
   individually tracked. A **bucket** (`PlayerBucketFillEvent`) is tagged the
-  same way — *Bucket of Fresh/Dirty Water* — but stays vanilla source-only.
+  same way — *Bucket of Fresh/Neutral/Dirty Water* — but stays vanilla source-only.
 - **The bottle is a real water potion** (`PotionType.WATER`) with a PDC quality
   tag, a tint, a config name, and a `USE_COOLDOWN` component (group
   `thirst:water_bottle`) sized from `drinking.cooldown-ticks`. Drinking it uses
@@ -232,11 +239,15 @@ string works here, not just RealisticSeasons'.
    *Bottle of Dirty Water*, tagged with the quality of the chunk it was filled
    in. There is no "drink straight from the block" interaction.
 
-2. **Water-quality command is `/water setchunk <fresh|dirty>`** — it targets the
-   single chunk the player is currently standing in (no coordinates, no radius).
-   `/water get` still reports the current chunk. `/water setregion ...` is kept
-   for bulk area painting. The spec's `/water set <fresh|dirty> [radius]` form is
-   dropped in favour of `setchunk`.
+2. **Water-quality command is `/water setchunk <fresh|neutral|dirty>`** — it
+   targets the single chunk the player is currently standing in (no coordinates,
+   no radius). `/water get` still reports the current chunk. `/water setregion
+   ...` is kept for bulk area painting. The spec's `/water set ... [radius]` form
+   is dropped in favour of `setchunk`.
 
-3. **`CLEAN` water quality is renamed `FRESH`** (config, commands, DB). `"clean"`
-   is still accepted as an input alias; existing databases are migrated on load.
+3. **Water quality has three states: `FRESH` / `NEUTRAL` / `DIRTY`** (spec had
+   two). `NEUTRAL` is the new default for unpainted chunks; `CLEAN` was renamed
+   `FRESH` (`"clean"` still accepted as input). Databases migrate on load.
+
+4. **Buckets are tagged too** (*Bucket of Fresh/Neutral/Dirty Water*), and rain
+   makes water dirty (`dirty-while-raining`, `rain-cauldron-always-dirty`).

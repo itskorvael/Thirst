@@ -99,7 +99,9 @@ class WaterQualityStoreTest {
             assertEquals(WaterQuality.FRESH, loaded.get(new ChunkKey("w", 1, 1)));
             assertEquals(WaterQuality.DIRTY, loaded.get(new ChunkKey("w", 2, 2)));
 
-            // The new CHECK must now allow FRESH.
+            // The rebuilt CHECK must now allow FRESH and NEUTRAL.
+            migrated.upsert(new ChunkKey("w", 3, 3), WaterQuality.NEUTRAL).join();
+            assertEquals(WaterQuality.NEUTRAL, migrated.loadAll().get(new ChunkKey("w", 3, 3)));
             migrated.upsert(new ChunkKey("w", 3, 3), WaterQuality.FRESH).join();
             assertEquals(WaterQuality.FRESH, migrated.loadAll().get(new ChunkKey("w", 3, 3)));
         } finally {

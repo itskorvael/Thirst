@@ -1,23 +1,31 @@
 package dev.thirst.drinking;
 
+import dev.thirst.water.ChunkKey;
 import dev.thirst.water.WaterQuality;
 import dev.thirst.water.WaterQualityService;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * Tags a filled water bucket with the quality of what it scooped, the same way
- * {@link DrinkingListener} tags bottles.
+ * Water quality for buckets:
  *
- * <p>From a water source: chunk quality (or DIRTY while raining). From a
- * cauldron: whatever {@link CauldronWaterTracker} says is in it. Emptying a
- * tagged bucket into the world does not tag the placed water (loose water uses
- * the chunk's flag); emptying it into a cauldron is handled by the tracker.
+ * <ul>
+ *   <li><b>fill</b> — a filled water bucket is tagged with the quality of what
+ *       it scooped (chunk quality, DIRTY while raining, or a cauldron's tracked
+ *       quality), the same way {@link DrinkingListener} tags bottles;</li>
+ *   <li><b>empty into the world</b> — pouring a tagged bucket into a chunk whose
+ *       quality is still {@link WaterQuality#NEUTRAL} sets that chunk to the
+ *       bucket's quality (loose water blocks themselves aren't tracked, but the
+ *       chunk adopts the poured quality);</li>
+ *   <li><b>empty into a cauldron</b> — handled by {@link CauldronWaterTracker}.</li>
+ * </ul>
  */
 public final class BucketListener implements Listener {
 
@@ -48,5 +56,28 @@ public final class BucketListener implements Listener {
         }
 
         event.setItemStack(containers.createBucket(quality));
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    public void onBucketEmpty(PlayerBucketEmptyEvent event) {
+        if (event.getBucket() != Material.WATER_BUCKET) {
+            return;
+        }
+        Material clicked = event.getBlockClicked().getType();
+        if (clicked == Material.WATER_CAULDRON || clicked == Material.CAULDRON) {
+            return; // cauldrons are the tracker's job
+        }
+
+        Player player = event.getPlayer();
+        WaterQuality poured = containers.qualityOf(player.getInventory().getItem(event.getHand()));
+        if (poured == null || poured == WaterQuality.NEUTRAL) {
+            return;
+        }
+
+        Block placed = event.getBlock();
+        ChunkKey chunk = ChunkKey.fromBlock(placed.getWorld(), placed.getX(), placed.getZ());
+        if (water.qualityAt(chunk) == WaterQuality.NEUTRAL) {
+            water.setChunk(chunk, poured);
+        }
     }
 }
