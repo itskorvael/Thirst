@@ -79,12 +79,21 @@ public final class WaterCommand {
         }
         ChunkKey key = ChunkKey.fromLocation(player.getLocation());
         WaterQuality quality = water.qualityAt(key);
-        boolean explicit = water.isExplicitlySet(key);
+
+        String note;
+        if (water.isExplicitlySet(key)) {
+            note = "";
+        } else if (water.chunkHasWater(key)) {
+            note = " (auto: natural water)";
+        } else {
+            note = " (default: dry)";
+        }
+
         ctx.getSource().getSender().sendMessage(Component.text(
                 "Chunk (" + key.x() + ", " + key.z() + ") in " + key.worldName() + ": ",
                 NamedTextColor.GRAY)
                 .append(Component.text(quality.name(), colourOf(quality)))
-                .append(Component.text(explicit ? "" : " (default)", NamedTextColor.DARK_GRAY)));
+                .append(Component.text(note, NamedTextColor.DARK_GRAY)));
         return Command.SINGLE_SUCCESS;
     }
 

@@ -62,10 +62,20 @@ public record ThirstConfig(
     ) {}
 
     /**
-     * The {@code water:} section — the {@code /water setregion} safety cap and
-     * the (later-phase) water-quality wand tool.
+     * The {@code water:} section — natural-water detection for unpainted chunks,
+     * the {@code /water setregion} safety cap, and the (later-phase)
+     * water-quality wand tool.
+     *
+     * @param detectWater         scan an unpainted chunk for surface water on first query
+     * @param naturalWaterQuality quality of an unpainted chunk that has water (detection on)
      */
-    public record Water(int maxRegionChunks, boolean wandEnabled, String wandMaterial) {}
+    public record Water(
+            boolean detectWater,
+            WaterQuality naturalWaterQuality,
+            int maxRegionChunks,
+            boolean wandEnabled,
+            String wandMaterial
+    ) {}
 
     /** Core thirst drain / damage numbers. */
     public record Thirst(
@@ -217,6 +227,8 @@ public record ThirstConfig(
 
         Reader waterSec = root.section("water");
         Water water = new Water(
+                waterSec.getBoolean("detect-water", true),
+                waterSec.getEnum("natural-water-quality", WaterQuality.DIRTY, WaterQuality::parse),
                 waterSec.getInt("max-region-chunks", 50_000, 1, 10_000_000),
                 waterSec.getBoolean("wand-enabled", true),
                 waterSec.getNonBlankString("wand-material", "BLAZE_ROD")

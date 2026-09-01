@@ -139,6 +139,14 @@ built-in default instead of breaking gameplay.
   that is still `NEUTRAL` (`BucketListener#onBucketEmpty`) sets that chunk to the
   bucket's quality (chunk-level, not per-block). Drinking neutral water restores
   `neutral-water-restore-amount` (default 3) and never causes Salmonella.
+- **Natural-water detection** (`water.detect-water`, default on): an unpainted
+  chunk is scanned once — 256 `HeightMap.MOTION_BLOCKING` column checks — the
+  first time its quality is asked for. Has surface water → `natural-water-quality`
+  (default DIRTY); dry → `default-water-quality` (NEUTRAL). Result cached for the
+  session; a painted chunk is never scanned or overwritten (detection is
+  read-only). Limits: won't notice water *added* to a dry chunk until restart,
+  and misses water fully under solid overhangs / leaves. Admins can still paint
+  those.
 - **`/water setregion`** takes two **block**-coordinate corners (what admins
   read off F3), converts to a chunk rectangle, and writes it in one transaction.
   Guarded by `water.max-region-chunks` (default 50 000).
@@ -246,8 +254,9 @@ string works here, not just RealisticSeasons'.
    is dropped in favour of `setchunk`.
 
 3. **Water quality has three states: `FRESH` / `NEUTRAL` / `DIRTY`** (spec had
-   two). `NEUTRAL` is the new default for unpainted chunks; `CLEAN` was renamed
-   `FRESH` (`"clean"` still accepted as input). Databases migrate on load.
+   two). `CLEAN` was renamed `FRESH` (`"clean"` still accepted). Unpainted
+   chunks: `NEUTRAL` if dry, `natural-water-quality` (DIRTY) if they contain
+   surface water (`water.detect-water`). Databases migrate on load.
 
 4. **Buckets are tagged too** (*Bucket of Fresh/Neutral/Dirty Water*), and rain
    makes water dirty (`dirty-while-raining`, `rain-cauldron-always-dirty`).

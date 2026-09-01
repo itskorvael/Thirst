@@ -91,6 +91,15 @@ hud:
 default-water-quality: NEUTRAL
 
 water:
+  # When an unpainted chunk is first checked, scan it for surface water:
+  #   has water -> natural-water-quality (below)
+  #   no water  -> default-water-quality (above)
+  # Scanned once per chunk per session and cached — it will NOT notice water
+  # added to a previously-dry chunk until the next restart. A painted chunk is
+  # never touched (detection is read-only). Turn off to use
+  # default-water-quality for every unpainted chunk.
+  detect-water: true
+  natural-water-quality: DIRTY
   # Safety cap on /water setregion — the command is rejected if the rectangle
   # covers more chunk columns than this.
   max-region-chunks: 50000
