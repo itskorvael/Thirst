@@ -3,6 +3,7 @@ package dev.thirst.water;
 import dev.thirst.config.ThirstConfig;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +54,18 @@ public final class WaterQualityService {
 
     public WaterQuality qualityAt(Location location) {
         return qualityAt(ChunkKey.fromLocation(location));
+    }
+
+    /**
+     * Effective quality of an open water source at {@code block}: DIRTY while its
+     * world has active rain/storm (if {@code dirty-while-raining}), otherwise the
+     * chunk's quality.
+     */
+    public WaterQuality qualityForSource(Block block) {
+        if (config.get().drinking().dirtyWhileRaining() && block.getWorld().hasStorm()) {
+            return WaterQuality.DIRTY;
+        }
+        return qualityAt(ChunkKey.fromBlock(block.getWorld(), block.getX(), block.getZ()));
     }
 
     /** Whether an admin has explicitly painted this chunk (vs. falling back to the default). */

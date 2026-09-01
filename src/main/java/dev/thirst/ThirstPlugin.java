@@ -3,9 +3,10 @@ package dev.thirst;
 import dev.thirst.command.ThirstCommand;
 import dev.thirst.command.WaterCommand;
 import dev.thirst.config.ThirstConfig;
+import dev.thirst.drinking.BucketListener;
+import dev.thirst.drinking.CauldronWaterTracker;
 import dev.thirst.drinking.DrinkingListener;
-import dev.thirst.drinking.RainCauldronTracker;
-import dev.thirst.drinking.WaterBottles;
+import dev.thirst.drinking.WaterContainers;
 import dev.thirst.hud.ThirstHudTask;
 import dev.thirst.integration.ActionBarSegment;
 import dev.thirst.integration.PlaceholderApiSegment;
@@ -91,11 +92,13 @@ public final class ThirstPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
                 new ThirstSprintListener(thirstManager, this::config, speedModifier), this);
 
-        WaterBottles waterBottles = new WaterBottles(this, this::config);
-        RainCauldronTracker rainCauldronTracker = new RainCauldronTracker();
-        getServer().getPluginManager().registerEvents(rainCauldronTracker, this);
+        WaterContainers waterContainers = new WaterContainers(this, this::config);
+        CauldronWaterTracker cauldronWaterTracker = new CauldronWaterTracker(waterContainers, this::config);
+        getServer().getPluginManager().registerEvents(cauldronWaterTracker, this);
         getServer().getPluginManager().registerEvents(new DrinkingListener(
-                thirstManager, waterQuality, waterBottles, rainCauldronTracker, this::config), this);
+                thirstManager, waterQuality, waterContainers, cauldronWaterTracker, this::config), this);
+        getServer().getPluginManager().registerEvents(new BucketListener(
+                waterContainers, waterQuality, cauldronWaterTracker), this);
 
         this.tickTask = new ThirstTickTask(this, thirstManager, this::config);
         this.tickTask.start();

@@ -19,15 +19,17 @@ import org.jspecify.annotations.Nullable;
 import java.util.function.Supplier;
 
 /**
- * Creates and recognises the tagged "Bottle of Fresh/Dirty Water" items.
+ * Creates and recognises the quality-tagged water containers: bottles
+ * ({@code Bottle of Fresh/Dirty Water}) and buckets ({@code Bucket of
+ * Fresh/Dirty Water}).
  *
- * <p>Each is a vanilla water bottle ({@link PotionType#WATER}) — keeping the
- * drink animation and the free glass-bottle return — with a
- * {@link org.bukkit.persistence.PersistentDataContainer} tag recording the
- * {@link WaterQuality} of the chunk it was filled in, a tinted colour, a config
- * name, and a shared use-cooldown so drinking one briefly locks the rest.
+ * <p>A bottle is a vanilla water potion ({@link PotionType#WATER}) — it keeps
+ * the drink animation and the free glass-bottle return — plus a
+ * {@link org.bukkit.persistence.PersistentDataContainer} quality tag, a tint, a
+ * config name and a {@code USE_COOLDOWN} component. A bucket is a plain
+ * {@link Material#WATER_BUCKET} with the same tag and a config name.
  */
-public final class WaterBottles {
+public final class WaterContainers {
 
     private static final Color FRESH_COLOUR = Color.fromRGB(0x3F76E4);
     private static final Color DIRTY_COLOUR = Color.fromRGB(0x6B6246);
@@ -37,20 +39,21 @@ public final class WaterBottles {
     private final Supplier<ThirstConfig> config;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
-    public WaterBottles(Plugin plugin, Supplier<ThirstConfig> config) {
+    public WaterContainers(Plugin plugin, Supplier<ThirstConfig> config) {
         this.qualityKey = new NamespacedKey(plugin, "water_bottle_quality");
         this.cooldownGroup = new NamespacedKey(plugin, "water_bottle");
         this.config = config;
     }
 
-    /** A single filled bottle of the given quality, using the current config. */
+    // ── Creation ────────────────────────────────────────────────────────────
+
+    /** A single drinkable water bottle of the given quality. */
     @SuppressWarnings("UnstableApiUsage")
-    public ItemStack create(WaterQuality quality) {
+    public ItemStack createBottle(WaterQuality quality) {
         ThirstConfig.Drinking drinking = config.get().drinking();
-        String nameSource = quality == WaterQuality.FRESH
+        Component name = miniMessage.deserialize(quality == WaterQuality.FRESH
                 ? drinking.freshBottleName()
-                : drinking.dirtyBottleName();
-        Component name = miniMessage.deserialize(nameSource);
+                : drinking.dirtyBottleName());
 
         ItemStack item = ItemStack.of(Material.POTION);
         item.editMeta(PotionMeta.class, meta -> {
@@ -69,12 +72,33 @@ public final class WaterBottles {
         return item;
     }
 
+    /** A single water bucket of the given quality. */
+    public ItemStack createBucket(WaterQuality quality) {
+        ThirstConfig.Drinking drinking = config.get().drinking();
+        Component name = miniMessage.deserialize(quality == WaterQuality.FRESH
+                ? drinking.freshBucketName()
+                : drinking.dirtyBucketName());
+
+        ItemStack item = ItemStack.of(Material.WATER_BUCKET);
+        item.editMeta(meta -> {
+            meta.itemName(name);
+            meta.getPersistentDataContainer().set(qualityKey, PersistentDataType.STRING, quality.name());
+        });
+        return item;
+    }
+
+    // ── Recognition ─────────────────────────────────────────────────────────
+
     /**
-     * @return the quality this item was tagged with, or {@code null} if it is
-     *         not one of our water bottles
+     * @return the quality tag on this bottle or bucket, or {@code null} if it is
+     *         not one of ours
      */
     public @Nullable WaterQuality qualityOf(@Nullable ItemStack item) {
-        if (item == null || item.getType() != Material.POTION || !item.hasItemMeta()) {
+        if (item == null) {
+            return null;
+        }
+        Material type = item.getType();
+        if ((type != Material.POTION && type != Material.WATER_BUCKET) || !item.hasItemMeta()) {
             return null;
         }
         String raw = item.getItemMeta().getPersistentDataContainer()

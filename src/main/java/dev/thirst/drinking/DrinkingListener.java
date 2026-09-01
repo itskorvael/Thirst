@@ -32,12 +32,15 @@ import java.util.function.Supplier;
  *
  * <ul>
  *   <li>right-clicking a water source or cauldron with an empty glass bottle
- *       fills a quality-tagged {@link WaterBottles water bottle} instead of the
- *       plain vanilla one;</li>
+ *       fills a quality-tagged {@link WaterContainers water bottle} instead of
+ *       the plain vanilla one;</li>
  *   <li>drinking that bottle restores thirst — more for FRESH, less for DIRTY —
  *       and DIRTY rolls {@code salmonella-chance} to add a Salmonella stack
  *       (Phase 6 turns stacks into effects).</li>
  * </ul>
+ *
+ * <p>Bucket filling lives in {@link BucketListener}; cauldron water quality in
+ * {@link CauldronWaterTracker}.
  */
 public final class DrinkingListener implements Listener {
 
@@ -45,16 +48,16 @@ public final class DrinkingListener implements Listener {
 
     private final ThirstManager manager;
     private final WaterQualityService water;
-    private final WaterBottles bottles;
-    private final RainCauldronTracker rainCauldrons;
+    private final WaterContainers containers;
+    private final CauldronWaterTracker cauldrons;
     private final Supplier<ThirstConfig> config;
 
-    public DrinkingListener(ThirstManager manager, WaterQualityService water, WaterBottles bottles,
-                            RainCauldronTracker rainCauldrons, Supplier<ThirstConfig> config) {
+    public DrinkingListener(ThirstManager manager, WaterQualityService water, WaterContainers containers,
+                            CauldronWaterTracker cauldrons, Supplier<ThirstConfig> config) {
         this.manager = manager;
         this.water = water;
-        this.bottles = bottles;
-        this.rainCauldrons = rainCauldrons;
+        this.containers = containers;
+        this.cauldrons = cauldrons;
         this.config = config;
     }
 
@@ -76,7 +79,7 @@ public final class DrinkingListener implements Listener {
 
         if (held.getType() == Material.GLASS_BOTTLE) {
             fillBottle(event);
-        } else if (bottles.qualityOf(held) != null) {
+        } else if (containers.qualityOf(held) != null && held.getType() == Material.POTION) {
             enforceDrinkCooldown(event);
         }
     }
@@ -89,8 +92,7 @@ public final class DrinkingListener implements Listener {
         }
         event.setCancelled(true);
 
-        ThirstConfig cfg = config.get();
-        WaterQuality quality = target.quality(water, rainCauldrons, cfg);
+        WaterQuality quality = target.quality(water, cauldrons);
         boolean survival = player.getGameMode() != GameMode.CREATIVE;
 
         if (survival) {
@@ -102,7 +104,7 @@ public final class DrinkingListener implements Listener {
             }
         }
 
-        giveOrDrop(player, bottles.create(quality));
+        giveOrDrop(player, containers.createBottle(quality));
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_BOTTLE_FILL, 1.0f, 1.0f);
         player.swingMainHand();
     }
@@ -129,7 +131,7 @@ public final class DrinkingListener implements Listener {
         int next = levelled.getLevel() - 1;
         if (next < levelled.getMinimumLevel()) {
             cauldron.setType(Material.CAULDRON);
-            rainCauldrons.forget(cauldron);
+            cauldrons.forget(cauldron);
         } else {
             levelled.setLevel(next);
             cauldron.setBlockData(levelled);
@@ -148,7 +150,10 @@ public final class DrinkingListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onDrink(PlayerItemConsumeEvent event) {
-        WaterQuality quality = bottles.qualityOf(event.getItem());
+        if (event.getItem().getType() != Material.POTION) {
+            return;
+        }
+        WaterQuality quality = containers.qualityOf(event.getItem());
         if (quality == null) {
             return;
         }
@@ -194,17 +199,12 @@ public final class DrinkingListener implements Listener {
 
     private record FillTarget(Block block, boolean cauldron) {
 
-        WaterQuality quality(WaterQualityService water, RainCauldronTracker rainCauldrons, ThirstConfig cfg) {
-            ThirstConfig.Drinking drinking = cfg.drinking();
-            // Active rain/storm makes every source dirty; reverts when it clears.
-            if (drinking.dirtyWhileRaining() && block.getWorld().hasStorm()) {
-                return WaterQuality.DIRTY;
+        WaterQuality quality(WaterQualityService water, CauldronWaterTracker cauldrons) {
+            if (cauldron) {
+                WaterQuality tracked = cauldrons.qualityOf(block);
+                return tracked != null ? tracked : water.qualityForSource(block);
             }
-            // Rain/dripstone-filled cauldrons hold dirty runoff even after the rain stops.
-            if (cauldron && drinking.rainCauldronAlwaysDirty() && rainCauldrons.isRainFilled(block)) {
-                return WaterQuality.DIRTY;
-            }
-            return water.qualityAt(block.getLocation());
+            return water.qualityForSource(block);
         }
     }
 }

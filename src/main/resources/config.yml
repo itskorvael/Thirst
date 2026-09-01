@@ -156,17 +156,20 @@ drinking:
   dirty-water-restore-amount: 2
   # Chance (0.0–1.0) that drinking a Dirty Water bottle causes / stacks Salmonella.
   salmonella-chance: 0.35
-  # A cauldron filled by rain (or dripstone) holds dirty runoff — it stays DIRTY
-  # even after the rain stops, regardless of the chunk's quality flag. Tracked in
-  # memory; resets on restart.
+  # A cauldron holds the quality of whatever was poured in — a tagged bucket or
+  # bottle carries its quality across; rain / dripstone fills it with dirty
+  # runoff (gated by this flag). Any dirty part makes the whole pot dirty.
+  # Tracked in memory; resets on restart.
   rain-cauldron-always-dirty: true
   # While a world has active rain/storm, every water source there fills DIRTY,
   # regardless of the chunk's quality. Reverts as soon as the weather clears.
-  # Bottles already filled keep whatever quality they were filled with.
+  # Bottles / buckets already filled keep whatever quality they were filled with.
   dirty-while-raining: true
-  # Names of the filled bottles (MiniMessage).
+  # Item names for the filled containers (MiniMessage).
   fresh-bottle-name: "<aqua>Bottle of Fresh Water"
   dirty-bottle-name: "<color:#8a7f4a>Bottle of Dirty Water"
+  fresh-bucket-name: "<aqua>Bucket of Fresh Water"
+  dirty-bucket-name: "<color:#8a7f4a>Bucket of Dirty Water"
 
   # Optional stretch goal (Phase 7): standing in rain slowly restores thirst.
   rain-trickle-enabled: false

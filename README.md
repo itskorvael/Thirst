@@ -46,9 +46,10 @@ Built in phases; see the checklist below.
 - [x] **Phase 4** — per-chunk water quality: SQLite store (async, single-thread
   connection), in-memory `Map<ChunkKey, WaterQuality>` cache with write-through,
   `/water get|setchunk|setregion`, unit + in-memory-SQLite tests
-- [x] **Phase 5** — bottle-based drinking: fill a glass bottle at a water source
-  or cauldron → tagged *Bottle of Fresh/Dirty Water* → drink to restore thirst;
-  dirty water rolls a Salmonella stack; rain makes every source dirty
+- [x] **Phase 5** — bottle-based drinking: fill a glass bottle *or bucket* at a
+  water source or cauldron → tagged *Bottle/Bucket of Fresh/Dirty Water* → drink
+  to restore thirst; dirty water rolls a Salmonella stack; rain makes every
+  source dirty; cauldrons hold the quality of what's poured in
 - [ ] Phase 6 — Salmonella stacks, effects, decay, cure
 - [ ] Phase 7 — `/thirst` commands, permissions, config validation, `/thirst reload`
 - [ ] Phase 8 — HUD v2 (resource-pack droplet glyphs), optional
@@ -144,31 +145,39 @@ built-in default instead of breaking gameplay.
 
 ### Phase 5 design notes (for review)
 
-- **Bottle-only, no drink-from-block** — per the earlier maintainer decision.
-  Right-clicking a water source (via a `SOURCE_ONLY` ray trace, so flowing water
-  is excluded) or cauldron with an empty `GLASS_BOTTLE` cancels the vanilla fill
-  and gives a tagged bottle instead.
+- **Bottle-only for *drinking*, no drink-from-block** — per the earlier
+  maintainer decision. Right-clicking a water source (via a `SOURCE_ONLY` ray
+  trace, so flowing water is excluded) or cauldron with an empty `GLASS_BOTTLE`
+  cancels the vanilla fill and gives a tagged bottle. A **bucket**
+  (`PlayerBucketFillEvent`) is tagged the same way — *Bucket of Fresh/Dirty
+  Water* — via `WaterContainers`.
 - **The bottle is a real water potion** (`PotionType.WATER`) with a PDC quality
   tag, a tint, a config name, and a `USE_COOLDOWN` component (group
   `thirst:water_bottle`) sized from `drinking.cooldown-ticks`. Drinking it uses
   the vanilla animation and returns a glass bottle for free. The cooldown is
   also enforced server-side (cancel the interact) in case of a modified client.
+- **Cauldrons hold the quality of what's poured in**, not the chunk
+  (`CauldronWaterTracker`, in-memory `Map<BlockPos, WaterQuality>`): a tagged
+  bucket / bottle carries its quality across; rain / dripstone (`NATURAL_FILL`,
+  gated by `rain-cauldron-always-dirty`) is dirty runoff. Mixing rule: any dirty
+  part → whole pot dirty. Untracked cauldrons (pre-restart) fall back to the
+  source-quality of their own location.
 - **Salmonella:** dirty water rolls `salmonella-chance` and, on a hit, bumps the
   stack count + `salmonella_ticks_remaining` in the PDC (capped at
   `stack-durations-seconds.size()`). *Phase 6* turns stacks into effects, decay
   and the cure — for now `/thirst get` just shows the number climb.
-- **Rain makes water dirty:**
-  - `dirty-while-raining` (default on) — while a world has active rain/storm,
-    every source there fills DIRTY regardless of chunk. Checked at fill time, so
-    it reverts the moment the weather clears. Bottles keep their fill-time tag.
-  - `rain-cauldron-always-dirty` (default on) — `RainCauldronTracker` watches
-    `CauldronLevelChangeEvent` for `NATURAL_FILL` (rain / dripstone) and marks
-    those cauldrons DIRTY *permanently* (that's runoff sitting in the pot, not a
-    live source). In-memory; resets on restart.
-- **Creative** players fill without consuming the bottle or emptying the cauldron.
-- New config: `drinking.fresh-bottle-name` / `dirty-bottle-name` (MiniMessage).
-- Not unit-testable (ItemStack needs a running server) — the config maths behind
-  the Salmonella roll is tested; the rest needs an in-game check.
+- **`dirty-while-raining`** (default on) — while a world has active rain/storm,
+  every open source there resolves DIRTY regardless of chunk. Checked at fill
+  time, so it reverts the moment the weather clears. Containers keep their
+  fill-time tag.
+- **Loose water blocks are not tracked** — emptying a *Bucket of Fresh Water*
+  into the world just makes ordinary chunk-quality water. Per-block quality
+  propagation through flowing water is out of scope.
+- **Creative** players fill without consuming the container or emptying the cauldron.
+- New config: `drinking.{fresh,dirty}-{bottle,bucket}-name` (MiniMessage).
+- Mostly not unit-testable (ItemStack needs a running server). The pure bits —
+  the Salmonella stack maths and the cauldron `mix()` rule — are tested; the
+  rest needs an in-game check.
 
 ### Sharing the action bar with RealisticSeasons (or any plugin)
 
