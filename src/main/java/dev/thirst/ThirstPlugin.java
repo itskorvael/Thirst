@@ -8,6 +8,7 @@ import dev.thirst.integration.PlaceholderApiSegment;
 import dev.thirst.listener.ThirstExhaustionListener;
 import dev.thirst.listener.ThirstLifecycleListener;
 import dev.thirst.listener.ThirstSprintListener;
+import dev.thirst.thirst.CriticalSpeedModifier;
 import dev.thirst.thirst.ThirstKeys;
 import dev.thirst.thirst.ThirstManager;
 import dev.thirst.thirst.ThirstTickTask;
@@ -40,6 +41,7 @@ public final class ThirstPlugin extends JavaPlugin {
     private @Nullable ThirstManager thirstManager;
     private @Nullable ThirstTickTask tickTask;
     private @Nullable ThirstHudTask hudTask;
+    private @Nullable CriticalSpeedModifier speedModifier;
 
     @Override
     public void onEnable() {
@@ -58,10 +60,12 @@ public final class ThirstPlugin extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(
                 new ThirstLifecycleListener(thirstManager, hudTask), this);
+        this.speedModifier = new CriticalSpeedModifier(this);
+
         getServer().getPluginManager().registerEvents(
                 new ThirstExhaustionListener(thirstManager, this::config), this);
         getServer().getPluginManager().registerEvents(
-                new ThirstSprintListener(thirstManager, this::config), this);
+                new ThirstSprintListener(thirstManager, this::config, speedModifier), this);
 
         this.tickTask = new ThirstTickTask(this, thirstManager, this::config);
         this.tickTask.start();
@@ -90,6 +94,14 @@ public final class ThirstPlugin extends JavaPlugin {
                 thirstManager.unload(player);
             }
             thirstManager = null;
+        }
+        if (speedModifier != null) {
+            // Transient modifiers vanish on relog anyway, but players staying
+            // online through a disable would keep it stuck until then.
+            for (Player player : getServer().getOnlinePlayers()) {
+                speedModifier.clear(player);
+            }
+            speedModifier = null;
         }
         getLogger().info("Thirst disabled.");
     }
