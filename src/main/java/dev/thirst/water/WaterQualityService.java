@@ -85,10 +85,17 @@ public final class WaterQualityService {
      * chunk's quality.
      */
     public WaterQuality qualityForSource(Block block) {
+        ChunkKey key = ChunkKey.fromBlock(block.getWorld(), block.getX(), block.getZ());
+        // The block we're resolving is water — so its chunk has water. Prime the
+        // detection cache directly rather than trusting a (possibly stale)
+        // height-map scan for freshly placed / flowing water.
+        if (block.getType() == Material.WATER) {
+            waterPresence.put(key, Boolean.TRUE);
+        }
         if (config.get().drinking().dirtyWhileRaining() && block.getWorld().hasStorm()) {
             return WaterQuality.DIRTY;
         }
-        return qualityAt(ChunkKey.fromBlock(block.getWorld(), block.getX(), block.getZ()));
+        return qualityAt(key);
     }
 
     /** Whether an admin (or a poured bucket) has explicitly set this chunk. */
@@ -140,9 +147,15 @@ public final class WaterQualityService {
         int baseZ = key.z() << 4;
         for (int dx = 0; dx < 16; dx++) {
             for (int dz = 0; dz < 16; dz++) {
-                Block top = world.getHighestBlockAt(baseX + dx, baseZ + dz, HeightMap.MOTION_BLOCKING);
-                if (top.getType() == Material.WATER) {
-                    return true;
+                int x = baseX + dx;
+                int z = baseZ + dz;
+                // Check the surface plus a short way down — catches water under
+                // leaves, overhangs and shallow banks.
+                int top = world.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING);
+                for (int y = top; y >= top - 4 && y >= world.getMinHeight(); y--) {
+                    if (world.getBlockAt(x, y, z).getType() == Material.WATER) {
+                        return true;
+                    }
                 }
             }
         }

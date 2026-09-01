@@ -26,6 +26,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 
 /**
  * The bottle-based drinking loop:
@@ -51,14 +52,16 @@ public final class DrinkingListener implements Listener {
     private final WaterContainers containers;
     private final CauldronWaterTracker cauldrons;
     private final Supplier<ThirstConfig> config;
+    private final Logger logger;
 
     public DrinkingListener(ThirstManager manager, WaterQualityService water, WaterContainers containers,
-                            CauldronWaterTracker cauldrons, Supplier<ThirstConfig> config) {
+                            CauldronWaterTracker cauldrons, Supplier<ThirstConfig> config, Logger logger) {
         this.manager = manager;
         this.water = water;
         this.containers = containers;
         this.cauldrons = cauldrons;
         this.config = config;
+        this.logger = logger;
     }
 
     // ── Filling ─────────────────────────────────────────────────────────────
@@ -104,7 +107,11 @@ public final class DrinkingListener implements Listener {
             }
         }
 
-        giveOrDrop(player, containers.createBottle(quality));
+        ItemStack bottle = containers.createBottle(quality);
+        logger.info(() -> "[fill] " + player.getName() + " @ " + target.block().getType()
+                + " -> quality=" + quality + " readback=" + containers.qualityOf(bottle)
+                + " keys=" + keysOf(bottle));
+        giveOrDrop(player, bottle);
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_BOTTLE_FILL, 1.0f, 1.0f);
         player.swingMainHand();
     }
@@ -167,17 +174,24 @@ public final class DrinkingListener implements Listener {
         Player player = event.getPlayer();
 
         WaterQuality quality = containers.qualityOf(event.getItem());
-        if (quality == null && event.getHand() != null) {
+        ItemStack handItem = event.getHand() != null ? player.getInventory().getItem(event.getHand()) : null;
+        if (quality == null && handItem != null) {
             // Safety net: some paths hand back a stripped item on the event.
-            quality = containers.qualityOf(player.getInventory().getItem(event.getHand()));
+            quality = containers.qualityOf(handItem);
         }
         WaterQuality resolved = quality;
+        logger.info(() -> "[drink] " + player.getName()
+                + " event=" + event.getItem().getType() + "/" + keysOf(event.getItem())
+                + " hand=" + (handItem == null ? "-" : handItem.getType() + "/" + keysOf(handItem))
+                + " => " + resolved);
         if (resolved == null) {
             return;
         }
         ThirstConfig cfg = config.get();
 
+        int before = manager.getLevel(player);
         manager.addThirst(player, cfg.drinking().restoreFor(resolved));
+        logger.info(() -> "[drink] thirst " + before + " -> " + manager.getLevel(player));
         manager.setLastDrinkTimestamp(player, System.currentTimeMillis());
 
         Location loc = player.getLocation();
@@ -212,6 +226,13 @@ public final class DrinkingListener implements Listener {
     private static void giveOrDrop(Player player, ItemStack item) {
         player.getInventory().addItem(item).values().forEach(leftover ->
                 player.getWorld().dropItemNaturally(player.getLocation(), leftover));
+    }
+
+    private static String keysOf(@Nullable ItemStack item) {
+        if (item == null || !item.hasItemMeta()) {
+            return "no-meta";
+        }
+        return item.getItemMeta().getPersistentDataContainer().getKeys().toString();
     }
 
     private record FillTarget(Block block, boolean cauldron) {
