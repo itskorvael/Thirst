@@ -68,6 +68,15 @@ built-in default instead of breaking gameplay.
   knob.
 - **Respawn refills thirst to full** and clears exhaustion + illness, matching
   vanilla hunger resetting on death.
+- **Low-thirst red screen vignette** (no resource pack): a per-player virtual
+  `WorldBorder`, always re-centred on the player, sized so they're permanently
+  within `setWarningDistance()` — which Bukkit's own javadoc documents as
+  tinting the screen red. The actual barrier wall never renders close enough
+  to be seen, only the tint. No border damage; whatever border the player had
+  before (world default, or another plugin's) is restored once thirst rises
+  back above critical. One known limitation: if another plugin *also* assigns
+  that player a custom per-player border while the vignette is active, ours
+  will clobber it for that window.
 - **Folia is not supported** (uses the Bukkit scheduler).
 - `/thirst` is a minimal debug command this phase; Phase 7 owns the real one.
 

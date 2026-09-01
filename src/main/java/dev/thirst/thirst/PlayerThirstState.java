@@ -1,5 +1,8 @@
 package dev.thirst.thirst;
 
+import org.bukkit.WorldBorder;
+import org.jspecify.annotations.Nullable;
+
 /**
  * Mutable in-memory copy of a player's thirst state while they are online.
  *
@@ -19,6 +22,8 @@ public final class PlayerThirstState {
 
     // ── Transient (runtime only) ────────────────────────────────────────────
     private int secondsAtZeroThirst;
+    private boolean vignetteActive;
+    private @Nullable WorldBorder preVignetteBorder;
 
     private boolean dirty;
 
@@ -48,6 +53,14 @@ public final class PlayerThirstState {
 
     public boolean isDirty() {
         return dirty;
+    }
+
+    public boolean isVignetteActive() {
+        return vignetteActive;
+    }
+
+    public @Nullable WorldBorder getPreVignetteBorder() {
+        return preVignetteBorder;
     }
 
     void setLevel(int level) {
@@ -84,6 +97,12 @@ public final class PlayerThirstState {
 
     void setSecondsAtZeroThirst(int secondsAtZeroThirst) {
         this.secondsAtZeroThirst = Math.max(0, secondsAtZeroThirst);
+    }
+
+    /** Marks the vignette on/off and, when turning on, records the border to restore later. */
+    void setVignetteActive(boolean active, @Nullable WorldBorder borderToRestore) {
+        this.vignetteActive = active;
+        this.preVignetteBorder = active ? borderToRestore : null;
     }
 
     /** Marks the state as matching what is stored in the PDC. */

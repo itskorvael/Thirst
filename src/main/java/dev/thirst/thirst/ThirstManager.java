@@ -47,6 +47,7 @@ public final class ThirstManager {
     public void unload(Player player) {
         PlayerThirstState state = states.remove(player.getUniqueId());
         if (state != null) {
+            ThirstVignette.clear(player, state);
             writeToPdc(player, state);
         }
     }
