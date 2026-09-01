@@ -78,6 +78,8 @@ public final class ThirstCommand {
                             plugin.loadPluginConfig();
                             ctx.getSource().getSender().sendMessage(
                                     Component.text("Thirst configuration reloaded.", NamedTextColor.GREEN));
+                            ctx.getSource().getSender().sendMessage(
+                                    Component.text(plugin.externalSegmentStatus(), NamedTextColor.GRAY));
                             return Command.SINGLE_SUCCESS;
                         }))
                 .build();

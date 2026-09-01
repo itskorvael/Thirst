@@ -25,13 +25,18 @@ import java.util.concurrent.ConcurrentHashMap;
 final class ActionBarHudRenderer implements HudRenderer {
 
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
-    private final @Nullable ActionBarSegment externalSegment;
+    private volatile @Nullable ActionBarSegment externalSegment;
 
     /** Player UUID -> {@code System.currentTimeMillis()} until which to stay quiet. Written from other threads. */
     private final Map<UUID, Long> yieldUntil = new ConcurrentHashMap<>();
 
     ActionBarHudRenderer(@Nullable ActionBarSegment externalSegment) {
         this.externalSegment = externalSegment;
+    }
+
+    /** Swap the external segment source (e.g. after {@code /thirst reload} re-checks PlaceholderAPI). */
+    void setSegment(@Nullable ActionBarSegment segment) {
+        this.externalSegment = segment;
     }
 
     @Override
@@ -44,8 +49,9 @@ final class ActionBarHudRenderer implements HudRenderer {
                 ThirstHudFormatter.render(level, config.thirst(), config.hud()));
 
         Component message = bar;
-        if (externalSegment != null) {
-            Component external = externalSegment.resolve(player).orElse(null);
+        ActionBarSegment segment = this.externalSegment;
+        if (segment != null) {
+            Component external = segment.resolve(player).orElse(null);
             if (external != null) {
                 ThirstConfig.ExternalSegment settings = config.hud().externalSegment();
                 Component separator = miniMessage.deserialize(settings.separator());

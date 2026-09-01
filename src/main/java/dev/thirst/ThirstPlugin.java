@@ -43,6 +43,9 @@ public final class ThirstPlugin extends JavaPlugin {
     private @Nullable ThirstHudTask hudTask;
     private @Nullable CriticalSpeedModifier speedModifier;
 
+    /** Tracks the last-seen PlaceholderAPI availability so transitions are logged once. */
+    private boolean placeholderApiActive;
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
@@ -56,7 +59,7 @@ public final class ThirstPlugin extends JavaPlugin {
             thirstManager.load(player);
         }
 
-        this.hudTask = new ThirstHudTask(this, thirstManager, this::config, resolveExternalSegment());
+        this.hudTask = new ThirstHudTask(this, thirstManager, this::config, refreshExternalSegment());
 
         getServer().getPluginManager().registerEvents(
                 new ThirstLifecycleListener(thirstManager, hudTask), this);
@@ -138,30 +141,48 @@ public final class ThirstPlugin extends JavaPlugin {
     }
 
     /**
-     * Builds the {@code hud.external-segment} source if PlaceholderAPI is
-     * present; otherwise returns {@code null} (and warns if the feature was
-     * switched on without it).
+     * (Re-)builds the {@code hud.external-segment} source. Checked at enable
+     * <em>and</em> on every {@code /thirst reload}, so it self-heals if
+     * PlaceholderAPI happened to load after Thirst. Logs only on a change.
      */
-    private @Nullable ActionBarSegment resolveExternalSegment() {
-        if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            getLogger().info("PlaceholderAPI detected — hud.external-segment is available.");
-            return new PlaceholderApiSegment(this::config);
+    private @Nullable ActionBarSegment refreshExternalSegment() {
+        boolean present = getServer().getPluginManager().isPluginEnabled("PlaceholderAPI");
+        if (present != placeholderApiActive) {
+            placeholderApiActive = present;
+            getLogger().info(present
+                    ? "PlaceholderAPI detected — hud.external-segment is available."
+                    : "PlaceholderAPI is no longer present — hud.external-segment disabled.");
         }
-        if (config.hud().externalSegment().enabled()) {
+        if (!present && config.hud().externalSegment().enabled()) {
             getLogger().warning("hud.external-segment is enabled but PlaceholderAPI is not "
-                    + "installed; the extra segment will not be shown.");
+                    + "loaded; run /thirst reload once it is, or restart.");
         }
-        return null;
+        return present ? new PlaceholderApiSegment(this::config) : null;
     }
 
     /**
-     * Re-reads {@code config.yml}, swaps in a fresh validated snapshot, and
-     * restarts the HUD task so a changed update interval takes effect.
+     * One-line description of the external HUD segment state, for
+     * {@code /thirst reload} feedback.
+     */
+    public String externalSegmentStatus() {
+        if (!config.hud().externalSegment().enabled()) {
+            return "hud.external-segment: off";
+        }
+        return getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")
+                ? "hud.external-segment: active (PlaceholderAPI ok)"
+                : "hud.external-segment: enabled, but PlaceholderAPI is missing";
+    }
+
+    /**
+     * Re-reads {@code config.yml}, swaps in a fresh validated snapshot,
+     * re-checks PlaceholderAPI, and restarts the HUD task so a changed update
+     * interval takes effect.
      */
     public void loadPluginConfig() {
         reloadConfig();
         this.config = ThirstConfig.load(getConfig(), message -> getLogger().warning(message));
         if (hudTask != null) {
+            hudTask.setExternalSegment(refreshExternalSegment());
             hudTask.restart();
         }
     }

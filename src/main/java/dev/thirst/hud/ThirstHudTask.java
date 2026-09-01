@@ -90,6 +90,11 @@ public final class ThirstHudTask implements Runnable {
         actionBar.requestYield(player.getUniqueId(), config.get().hud().yieldWindowMillis());
     }
 
+    /** Swap the {@code hud.external-segment} source (called when {@code /thirst reload} re-checks PlaceholderAPI). */
+    public void setExternalSegment(@Nullable ActionBarSegment segment) {
+        actionBar.setSegment(segment);
+    }
+
     @Override
     public void run() {
         ThirstConfig cfg = config.get();
