@@ -23,7 +23,6 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jspecify.annotations.Nullable;
 
-import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
@@ -89,7 +88,11 @@ public final class DrinkingListener implements Listener {
 
     private void fillBottle(PlayerInteractEvent event) {
         Player player = event.getPlayer();
-        FillTarget target = resolveFillTarget(player);
+        FillTarget target = resolveFillTarget(event);
+        logger.info(() -> "[fill] " + player.getName() + " action=" + event.getAction()
+                + " clicked=" + (event.getClickedBlock() == null ? "-" : event.getClickedBlock().getType())
+                + " target=" + (target == null ? "NONE"
+                        : target.block().getType() + (target.cauldron() ? "(cauldron)" : "")));
         if (target == null) {
             return;
         }
@@ -108,29 +111,45 @@ public final class DrinkingListener implements Listener {
         }
 
         ItemStack bottle = containers.createBottle(quality);
-        logger.info(() -> "[fill] " + player.getName() + " @ " + target.block().getType()
-                + " -> quality=" + quality + " readback=" + containers.qualityOf(bottle)
-                + " keys=" + keysOf(bottle));
+        logger.info(() -> "[fill] created quality=" + quality + " readback="
+                + containers.qualityOf(bottle) + " keys=" + keysOf(bottle));
         giveOrDrop(player, bottle);
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_BOTTLE_FILL, 1.0f, 1.0f);
         player.swingMainHand();
     }
 
-    private @Nullable FillTarget resolveFillTarget(Player player) {
-        // Any water block in the crosshair — source or flowing, natural or placed.
+    private @Nullable FillTarget resolveFillTarget(PlayerInteractEvent event) {
+        // 1. A water / cauldron block clicked directly.
+        FillTarget clicked = classify(event.getClickedBlock());
+        if (clicked != null) {
+            return clicked;
+        }
+
+        Player player = event.getPlayer();
+
+        // 2. A water / cauldron block in the crosshair (respects real shapes).
         FillTarget aimed = classify(player.getTargetBlockExact(FILL_REACH, FluidCollisionMode.ALWAYS));
         if (aimed != null) {
             return aimed;
         }
-        // Fallback: first water / cauldron along the exact line of sight — the
-        // block ray trace can pass through thin flowing-water shapes.
-        for (Block block : player.getLineOfSight(Set.of(), FILL_REACH)) {
+
+        // 3. Walk the crosshair ray by hand — catches thin flowing-water shapes
+        //    the precise ray trace passes through.
+        Location point = player.getEyeLocation();
+        var step = point.getDirection().multiply(0.5);
+        for (int i = 0; i < FILL_REACH * 2; i++) {
+            Block block = point.getBlock();
             FillTarget target = classify(block);
             if (target != null) {
                 return target;
             }
+            if (block.getType().isOccluding()) {
+                break;
+            }
+            point.add(step);
         }
-        // Head submerged.
+
+        // 4. Head submerged.
         return classify(player.getEyeLocation().getBlock());
     }
 
