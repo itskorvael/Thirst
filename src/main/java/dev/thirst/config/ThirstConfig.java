@@ -38,7 +38,8 @@ public record ThirstConfig(
             int barSegments,
             String colorNormal,
             String colorCritical,
-            long yieldWindowMillis
+            long yieldWindowMillis,
+            String label
     ) {}
 
     /** Optional water-quality wand tool. */
@@ -143,7 +144,8 @@ public record ThirstConfig(
                 hudSec.getInt("bar-segments", 10, 1, 40),
                 hudSec.getNonBlankString("color-normal", "<aqua>"),
                 hudSec.getNonBlankString("color-critical", "<red>"),
-                hudSec.getLong("yield-window-millis", 3000L, 0L, 60_000L)
+                hudSec.getLong("yield-window-millis", 3000L, 0L, 60_000L),
+                hudSec.getString("label", "Thirst")
         );
 
         WaterQuality defaultQuality =

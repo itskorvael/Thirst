@@ -2,6 +2,7 @@ package dev.thirst;
 
 import dev.thirst.command.ThirstCommand;
 import dev.thirst.config.ThirstConfig;
+import dev.thirst.hud.ThirstHudTask;
 import dev.thirst.listener.ThirstExhaustionListener;
 import dev.thirst.listener.ThirstLifecycleListener;
 import dev.thirst.thirst.ThirstKeys;
@@ -22,8 +23,10 @@ import org.jspecify.annotations.Nullable;
  *   <li>Phase 2 — thirst core: {@link ThirstManager}, exhaustion listeners,
  *       the per-second drain / starvation task, and a minimal {@code /thirst}
  *       debug command</li>
+ *   <li>Phase 3 — the HUD ({@link ThirstHudTask}): action-bar text, or a boss
+ *       bar in debug/fallback mode</li>
  * </ol>
- * Still to come: HUD (3), water quality (4), drinking (5), Salmonella (6),
+ * Still to come: water quality (4), drinking (5), Salmonella (6),
  * full commands (7).
  */
 @NullMarked
@@ -33,6 +36,7 @@ public final class ThirstPlugin extends JavaPlugin {
 
     private @Nullable ThirstManager thirstManager;
     private @Nullable ThirstTickTask tickTask;
+    private @Nullable ThirstHudTask hudTask;
 
     @Override
     public void onEnable() {
@@ -47,13 +51,16 @@ public final class ThirstPlugin extends JavaPlugin {
             thirstManager.load(player);
         }
 
+        this.hudTask = new ThirstHudTask(this, thirstManager, this::config);
+
         getServer().getPluginManager().registerEvents(
-                new ThirstLifecycleListener(thirstManager), this);
+                new ThirstLifecycleListener(thirstManager, hudTask), this);
         getServer().getPluginManager().registerEvents(
                 new ThirstExhaustionListener(thirstManager, this::config), this);
 
         this.tickTask = new ThirstTickTask(this, thirstManager, this::config);
         this.tickTask.start();
+        this.hudTask.start();
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
                 event.registrar().register(ThirstCommand.build(this), "Thirst admin / debug commands"));
@@ -65,6 +72,10 @@ public final class ThirstPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (hudTask != null) {
+            hudTask.stop();
+            hudTask = null;
+        }
         if (tickTask != null) {
             tickTask.stop();
             tickTask = null;
@@ -98,10 +109,26 @@ public final class ThirstPlugin extends JavaPlugin {
     }
 
     /**
-     * Re-reads {@code config.yml} and swaps in a fresh validated snapshot.
+     * The HUD task. Other plugins can use it to cooperatively yield the action
+     * bar (see {@link ThirstHudTask#requestActionBarYield}).
+     */
+    public ThirstHudTask hud() {
+        ThirstHudTask task = this.hudTask;
+        if (task == null) {
+            throw new IllegalStateException("ThirstHudTask accessed before enable / after disable");
+        }
+        return task;
+    }
+
+    /**
+     * Re-reads {@code config.yml}, swaps in a fresh validated snapshot, and
+     * restarts the HUD task so a changed update interval takes effect.
      */
     public void loadPluginConfig() {
         reloadConfig();
         this.config = ThirstConfig.load(getConfig(), message -> getLogger().warning(message));
+        if (hudTask != null) {
+            hudTask.restart();
+        }
     }
 }

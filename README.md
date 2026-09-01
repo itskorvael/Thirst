@@ -38,7 +38,9 @@ Built in phases; see the checklist below.
 - [x] **Phase 2** — thirst core: `ThirstManager` (PDC-backed), exhaustion listeners,
   per-second drain + starvation task, `ThirstMath` pure functions + unit tests,
   minimal `/thirst get|set|reload`
-- [ ] Phase 3 — action-bar HUD
+- [x] **Phase 3** — HUD: action-bar text (bar or percent, blue → red at critical),
+  `BOSSBAR` debug/fallback mode, pluggable `HudRenderer` strategy for the future
+  resource-pack mode, `ThirstHudFormatter` pure functions + unit tests
 - [ ] Phase 4 — per-chunk water quality (SQLite schema, async load/save, cache, `/water`)
 - [ ] Phase 5 — bottle-based drinking (fill at a source → Clean/Dirty Water bottle → drink)
 - [ ] Phase 6 — Salmonella stacks, effects, decay, cure
@@ -70,6 +72,30 @@ built-in default instead of breaking gameplay.
   vanilla hunger resetting on death.
 - **Folia is not supported** (uses the Bukkit scheduler).
 - `/thirst` is a minimal debug command this phase; Phase 7 owns the real one.
+
+### Phase 3 design notes (for review)
+
+- **One shared HUD task**, not one task per player — it iterates online players
+  each interval. Joiners are picked up next tick; leavers cleaned in `onQuit`.
+  Same net effect as per-player tasks, less overhead.
+- **HUD hidden in Creative / Spectator**, matching vanilla hiding the hunger bar
+  there.
+- **`hud-mode` is a pluggable strategy** (`HudRenderer`): `ACTIONBAR_TEXT` and
+  `BOSSBAR` today; `ACTIONBAR_RESOURCEPACK` currently logs a one-time warning and
+  falls back to `ACTIONBAR_TEXT`. Phase 8 adds the third implementation without
+  touching the task.
+- **Action-bar "yield" is cooperative, not automatic.** Paper exposes no way to
+  detect another plugin's outgoing action-bar packets, so
+  `actionbar-overwrite-others: false` cannot magically notice a third-party HUD.
+  What it does: a plugin that depends on Thirst can call
+  `((ThirstPlugin) Bukkit.getPluginManager().getPlugin("Thirst")).hud()
+  .requestActionBarYield(player[, millis])` before sending its own text, and
+  Thirst will stay quiet for that window. If Thirst is the only action-bar user
+  on your server (the common case), set `actionbar-overwrite-others: true`.
+- **HUD colours / bar characters** go through MiniMessage, so `color-normal` /
+  `color-critical` accept hex and gradients, not just named colours.
+- Boss-bar mode uses the **Adventure `BossBar`** API (per-player, shown/hidden
+  via the player `Audience`), not the legacy `org.bukkit.boss` one.
 
 ### Open questions (defaults chosen, pending review)
 

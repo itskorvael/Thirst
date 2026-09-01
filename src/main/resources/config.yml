@@ -29,18 +29,29 @@ actionbar-overwrite-others: false
 resource-pack-url: ""
 
 hud:
-  # How often the HUD task refreshes each online player's action bar.
+  # How often the HUD task refreshes each online player's action bar / boss bar.
   # Action-bar text fades after ~3s (60t), so keep this below ~40 ticks.
   update-interval-ticks: 30
-  # BAR    -> "[||||||----] Thirst"
-  # PERCENT -> "75% Thirst"
+  # BAR     -> "[||||||----]"
+  # PERCENT -> "75% Thirst"  (label comes from hud.label below; blank hides it)
   style: BAR
   bar-segments: 10
-  # MiniMessage colour tags.
+  # MiniMessage colour tags. Anything MiniMessage accepts works: <blue>, a hex
+  # colour like <#4FC3F7>, even a <gradient:...>.
   color-normal: "<aqua>"
   color-critical: "<red>"
-  # When actionbar-overwrite-others is false, treat the slot as "busy" for this
-  # many milliseconds after another plugin writes to it.
+  # Text shown next to the percent (PERCENT style only). Blank hides it.
+  label: "Thirst"
+  # Default duration (ms) used when another plugin calls
+  # ThirstHudTask#requestActionBarYield(player) with no explicit duration.
+  #
+  # IMPORTANT: Paper has no public API to detect an arbitrary plugin's outgoing
+  # action-bar packets, so "actionbar-overwrite-others: false" cannot
+  # automatically notice a third-party plugin using the slot — only Thirst's
+  # own updates are something we control. What it *does* do is honour a
+  # cooperative request: another plugin can call
+  # ThirstHudTask#requestActionBarYield(Player[, millis]) to ask Thirst to back
+  # off for a moment before it sends its own text. See README.
   yield-window-millis: 3000
 
 # ─── Water quality ────────────────────────────────────────────────────────────
