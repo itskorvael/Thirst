@@ -2,8 +2,6 @@ package dev.thirst.drinking;
 
 import dev.thirst.config.ThirstConfig;
 import dev.thirst.water.WaterQuality;
-import io.papermc.paper.datacomponent.DataComponentTypes;
-import io.papermc.paper.datacomponent.item.UseCooldown;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -38,37 +36,25 @@ public final class WaterContainers {
     private static final Color DIRTY_COLOUR = Color.fromRGB(0x6B6246);
 
     private final NamespacedKey qualityKey;
-    private final NamespacedKey cooldownGroup;
     private final Supplier<ThirstConfig> config;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
     public WaterContainers(Plugin plugin, Supplier<ThirstConfig> config) {
         this.qualityKey = new NamespacedKey(plugin, "water_bottle_quality");
-        this.cooldownGroup = new NamespacedKey(plugin, "water_bottle");
         this.config = config;
     }
 
     // ── Creation ────────────────────────────────────────────────────────────
 
     /** A single drinkable water bottle of the given quality. */
-    @SuppressWarnings("UnstableApiUsage")
     public ItemStack createBottle(WaterQuality quality) {
-        ThirstConfig.Drinking drinking = config.get().drinking();
-
         ItemStack item = ItemStack.of(Material.POTION);
         PotionMeta meta = (PotionMeta) item.getItemMeta();
         meta.setBasePotionType(PotionType.WATER);
         meta.setColor(colourOf(quality));
-        applyName(meta, drinking.bottleName(quality));
+        applyName(meta, config.get().drinking().bottleName(quality));
         meta.getPersistentDataContainer().set(qualityKey, PersistentDataType.STRING, quality.name());
         item.setItemMeta(meta);
-
-        int cooldownTicks = drinking.cooldownTicks();
-        if (cooldownTicks > 0) {
-            item.setData(DataComponentTypes.USE_COOLDOWN, UseCooldown.useCooldown(cooldownTicks / 20.0f)
-                    .cooldownGroup(cooldownGroup)
-                    .build());
-        }
         return item;
     }
 

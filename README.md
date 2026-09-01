@@ -172,10 +172,12 @@ built-in default instead of breaking gameplay.
   same way — *Bucket of Freshwater / Water / Dirty Water* — but stays vanilla
   source-only.
 - **The bottle is a real water potion** (`PotionType.WATER`) with a PDC quality
-  tag, a tint, a config name, and a `USE_COOLDOWN` component (group
-  `thirst:water_bottle`) sized from `drinking.cooldown-ticks`. Drinking it uses
-  the vanilla animation and returns a glass bottle for free. The cooldown is
-  also enforced server-side (cancel the interact) in case of a modified client.
+  tag, a tint and a config name; drinking it uses the vanilla animation and
+  returns a glass bottle for free. `drinking.cooldown-ticks` is enforced
+  server-side (the interact that starts a drink is cancelled if you drank too
+  recently). *A client-side `USE_COOLDOWN` data component was tried and removed —
+  mixing the experimental `ItemStack#setData` API with `setItemMeta` was wiping
+  the item's custom data (the quality tag).*
 - **Cauldrons hold the quality of what's poured in**, not the chunk
   (`CauldronWaterTracker`, in-memory `Map<BlockPos, WaterQuality>`): a tagged
   bucket / bottle carries its quality across; rain / dripstone (`NATURAL_FILL`,

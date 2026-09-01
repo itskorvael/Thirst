@@ -163,8 +163,8 @@ thirst:
 # filled in. Drink that bottle later to restore thirst. There is no
 # drink-straight-from-the-block interaction.
 drinking:
-  # Ticks a filled bottle is locked after any water bottle is drunk (a vanilla
-  # use-cooldown group, so the client shows the sweep). Also enforced server-side.
+  # Minimum ticks between drinks (enforced server-side — the drink is refused
+  # if you last drank within this window).
   cooldown-ticks: 40
   fresh-water-restore-amount: 4
   neutral-water-restore-amount: 3
