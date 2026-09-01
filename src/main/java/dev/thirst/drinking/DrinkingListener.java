@@ -21,12 +21,11 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.RayTraceResult;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
 
 /**
  * The bottle-based drinking loop:
@@ -45,22 +44,20 @@ import java.util.logging.Logger;
  */
 public final class DrinkingListener implements Listener {
 
-    private static final double FILL_REACH = 5.0;
+    private static final int FILL_REACH = 5;
 
     private final ThirstManager manager;
     private final WaterQualityService water;
     private final WaterContainers containers;
     private final CauldronWaterTracker cauldrons;
     private final Supplier<ThirstConfig> config;
-    private final Logger logger;
 
     public DrinkingListener(ThirstManager manager, WaterQualityService water, WaterContainers containers,
-                            CauldronWaterTracker cauldrons, Supplier<ThirstConfig> config, Logger logger) {
+                            CauldronWaterTracker cauldrons, Supplier<ThirstConfig> config) {
         this.manager = manager;
         this.water = water;
         this.containers = containers;
         this.cauldrons = cauldrons;
-        this.logger = logger;
         this.config = config;
     }
 
@@ -113,20 +110,32 @@ public final class DrinkingListener implements Listener {
     }
 
     private @Nullable FillTarget resolveFillTarget(Player player) {
-        // ALWAYS (not SOURCE_ONLY): a bottle fills from any water block —
-        // natural or placed, source or flowing.
-        RayTraceResult ray = player.rayTraceBlocks(FILL_REACH, FluidCollisionMode.ALWAYS);
-        Block hit = ray == null ? null : ray.getHitBlock();
-        if (hit == null) {
+        // Any water block in the crosshair — source or flowing, natural or placed.
+        FillTarget aimed = classify(player.getTargetBlockExact(FILL_REACH, FluidCollisionMode.ALWAYS));
+        if (aimed != null) {
+            return aimed;
+        }
+        // Fallback: first water / cauldron along the exact line of sight — the
+        // block ray trace can pass through thin flowing-water shapes.
+        for (Block block : player.getLineOfSight(Set.of(), FILL_REACH)) {
+            FillTarget target = classify(block);
+            if (target != null) {
+                return target;
+            }
+        }
+        // Head submerged.
+        return classify(player.getEyeLocation().getBlock());
+    }
+
+    private static @Nullable FillTarget classify(@Nullable Block block) {
+        if (block == null) {
             return null;
         }
-        if (hit.getType() == Material.WATER_CAULDRON) {
-            return new FillTarget(hit, true);
-        }
-        if (hit.getType() == Material.WATER) {
-            return new FillTarget(hit, false);
-        }
-        return null;
+        return switch (block.getType()) {
+            case WATER_CAULDRON -> new FillTarget(block, true);
+            case WATER -> new FillTarget(block, false);
+            default -> null;
+        };
     }
 
     private void lowerCauldron(Block cauldron) {
@@ -155,26 +164,26 @@ public final class DrinkingListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onDrink(PlayerItemConsumeEvent event) {
-        ItemStack item = event.getItem();
-        WaterQuality quality = containers.qualityOf(item);
-        logger.info(() -> "[drink] " + event.getPlayer().getName() + " consumed " + item.getType()
-                + " (water-quality tag: " + quality + ")");
-        if (quality == null) {
+        Player player = event.getPlayer();
+
+        WaterQuality quality = containers.qualityOf(event.getItem());
+        if (quality == null && event.getHand() != null) {
+            // Safety net: some paths hand back a stripped item on the event.
+            quality = containers.qualityOf(player.getInventory().getItem(event.getHand()));
+        }
+        WaterQuality resolved = quality;
+        if (resolved == null) {
             return;
         }
-        Player player = event.getPlayer();
         ThirstConfig cfg = config.get();
 
-        int before = manager.getLevel(player);
-        manager.addThirst(player, cfg.drinking().restoreFor(quality));
+        manager.addThirst(player, cfg.drinking().restoreFor(resolved));
         manager.setLastDrinkTimestamp(player, System.currentTimeMillis());
-        logger.info(() -> "[drink] thirst " + before + " -> " + manager.getLevel(player)
-                + " (+" + cfg.drinking().restoreFor(quality) + " for " + quality + ")");
 
         Location loc = player.getLocation();
         player.getWorld().playSound(loc, Sound.ENTITY_GENERIC_DRINK, 1.0f, 1.0f);
 
-        switch (quality) {
+        switch (resolved) {
             case FRESH -> player.getWorld().spawnParticle(Particle.FALLING_WATER,
                     loc.clone().add(0.0, 1.4, 0.0), 8, 0.25, 0.15, 0.25, 0.0);
             case DIRTY -> {
