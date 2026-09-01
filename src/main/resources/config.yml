@@ -93,20 +93,19 @@ thirst:
   # Below this % of max, the HUD turns red (see hud.color-critical). Default
   # matches vanilla hunger's own "sprint disabled" cutoff: hunger level 6/20 = 30%.
   critical-threshold-percent: 30
-  # At/below critical-threshold-percent, neutralise the sprint speed bonus —
-  # sprinting gets you no faster than walking. (A true "can't sprint" isn't
-  # possible from the server; the client decides whether to sprint. This makes
-  # it pointless instead.) Normal walking speed is unaffected.
+  # At/below critical-threshold-percent, make sprinting pointless (a true
+  # "can't sprint" isn't possible from the server — the client decides whether
+  # to sprint). Two effects, both only while the player is actually sprinting:
+  #   * movement speed is cut to critical-sprint-speed-multiplier (below), so
+  #     sprinting is no faster than walking; normal walking is unaffected.
+  #   * jumping is blocked entirely — otherwise the sprint-jump lunge (a
+  #     client-side velocity kick the server can't dampen) lets you bunny-hop
+  #     around at speed. Let go of sprint and jumping works normally.
   disable-sprint-when-critical: true
   # Movement-speed multiplier applied only while sprinting AND critical.
   # 0.75 ≈ sprint no faster than a walk; lower = sprinting is slower than
-  # walking. Range 0.1–1.0 (1.0 disables the effect).
+  # walking. Range 0.1–1.0 (1.0 disables the speed part).
   critical-sprint-speed-multiplier: 0.75
-  # The sprint-jump boost is a separate flat velocity kick, so the multiplier
-  # above doesn't touch it. While sprinting AND critical, horizontal air speed
-  # is clamped to this (blocks/tick) just after a jump — 0.22 ≈ a walking jump,
-  # so a sprint-jump gains no distance. Raise toward 0.3 to allow some hop.
-  critical-jump-horizontal-cap: 0.22
 
   # Damage taken while at 0 thirst.
   starvation-damage-enabled: true
