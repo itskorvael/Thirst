@@ -203,12 +203,14 @@ drinking:
 # A stacking illness from drinking DIRTY water (chance = drinking.salmonella-chance).
 # Effects escalate by stack (code-defined, following the spec table). Only the
 # worst stack (5) amplifies to level II — earlier stacks just add more level-I
-# effects rather than stronger ones:
-#   1  Nausea I
-#   2  Nausea I + Slowness I
-#   3  Nausea I + Weakness I             (+ occasional vomit)
-#   4  Nausea I + Slowness I + Weakness I  (+ periodic damage)
-#   5  Nausea II + Slowness I + Weakness II  (+ lethal damage)
+# effects rather than stronger ones. Nausea (screen wobble) doesn't start
+# until nausea-from-stack, since — unlike the other effects — its amplifier
+# doesn't change its intensity in vanilla, only when it shows up does:
+#   1  Slowness I
+#   2  Slowness I + Weakness I
+#   3  Slowness I + Weakness I + Nausea I   (+ occasional vomit)
+#   4  Slowness I + Weakness I + Nausea I   (+ periodic damage)
+#   5  Slowness I + Weakness II + Nausea II (+ lethal damage)
 # Drinking dirty water while infected adds a stack (max 5) and resets the decay
 # timer. The HUD bar turns neon green (hud.color-infected) while infected.
 salmonella:
@@ -221,6 +223,10 @@ salmonella:
   # Drinking a milk bucket removes this many stacks instantly.
   cure-with-milk: true
   milk-cure-stacks: 1
+  # From this stack level, Nausea (screen wobble) starts. Below it you only get
+  # Slowness/Weakness — Nausea's amplifier doesn't change its intensity in
+  # vanilla, so this is the only real dial on "how much shake".
+  nausea-from-stack: 3
   # From this stack level, occasional cosmetic vomit particle + sound.
   vomit-from-stack: 3
   damage:

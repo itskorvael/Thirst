@@ -213,17 +213,22 @@ built-in default instead of breaking gameplay.
   before the thirst-drain logic, so illness ticks even while the player is
   otherwise thirst-exempt (Creative, etc.).
 - **Effect structure is code-defined, tuning is config.** `SalmonellaEffects`
-  maps a fixed 1→5 severity progression — Nausea I; +Slowness I; +Weakness I;
-  +Slowness I (all still level I); only the worst stack (5) amplifies to
-  Nausea II + Weakness II — that's the illness's shape, not a number to tweak.
-  Toned down from the original "level II by stack 3" curve so early stacks read
-  as inconvenient rather than debilitating. Durations (`stack-durations-seconds`),
-  decay interval, damage and cure are all in `config.yml`. `max-stacks` = number
-  of duration entries (capped at 5). Nausea is the icon shown, matching the
-  earlier decision to reuse the vanilla Nausea indicator.
+  maps a fixed 1→5 severity progression — Slowness I; +Weakness I; +Nausea I
+  (from `nausea-from-stack`); held; only the worst stack (5) amplifies Weakness
+  and Nausea to level II — that's the illness's shape, not a number to tweak.
+  Durations (`stack-durations-seconds`), decay interval, damage and cure are
+  all in `config.yml`. `max-stacks` = number of duration entries (capped at 5).
+  Nausea is the icon shown, matching the earlier decision to reuse the vanilla
+  Nausea indicator.
 - **`salmonella-chance` defaults to 0.65** (up from an initial 0.35) so the
   illness actually shows up in normal play instead of needing many dirty
   drinks before it lands.
+- **Nausea's amplifier doesn't do what you'd expect.** Vanilla's Nausea/Confusion
+  screen-warp intensity is identical at every level — the amplifier only
+  affects duration bookkeeping, not how much it shakes. So "tone down the
+  shake" can't be done by lowering the level; instead `nausea-from-stack`
+  (default 3) delays Nausea's *onset* — a single dirty-water infection (stack 1)
+  now only gives Slowness, no wobble at all.
 - **Decay is pure arithmetic** (`SalmonellaService.decay(...)` → `DecayStep`,
   unit-tested): the timer counts down each tick; on expiry it drops one stack
   and resets, or reports a cure at zero.

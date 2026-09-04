@@ -131,7 +131,7 @@ public final class SalmonellaService {
 
     private void applyEffects(Player player, int stack, ThirstConfig.Salmonella cfg) {
         int durationTicks = cfg.durationSecondsForStack(stack) * TICKS_PER_SECOND;
-        for (PotionEffect effect : SalmonellaEffects.forStack(stack, durationTicks)) {
+        for (PotionEffect effect : SalmonellaEffects.forStack(stack, durationTicks, cfg.nauseaFromStack())) {
             player.addPotionEffect(effect);
         }
     }
