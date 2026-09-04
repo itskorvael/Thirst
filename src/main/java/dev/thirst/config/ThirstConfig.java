@@ -300,7 +300,7 @@ public record ThirstConfig(
                 salSec.getInt("decay-interval-seconds", 300, 1, 86_400),
                 salSec.getStackDurations("stack-durations-seconds", DEFAULT_STACK_DURATIONS),
                 salSec.getBoolean("cure-with-milk", true),
-                salSec.getDouble("milk-cure-chance", 0.5, 0.0, 1.0),
+                salSec.getDouble("milk-cure-chance", 0.3, 0.0, 1.0),
                 salSec.getInt("milk-cure-stacks", 1, 1, MAX_SALMONELLA_STACKS),
                 salSec.getInt("nausea-from-stack", 3, 1, MAX_SALMONELLA_STACKS),
                 salSec.getInt("vomit-from-stack", 3, 1, MAX_SALMONELLA_STACKS),

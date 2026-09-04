@@ -224,7 +224,7 @@ salmonella:
   cure-with-milk: true
   # Chance (0.0-1.0) that a milk bucket cures anything at all. Only rolled
   # while actually infected, so healthy players drinking milk see nothing.
-  milk-cure-chance: 0.5
+  milk-cure-chance: 0.3
   # On a successful roll, how many stacks it removes.
   milk-cure-stacks: 1
   # From this stack level, Nausea (screen wobble) starts. Below it you only get

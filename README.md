@@ -233,7 +233,7 @@ built-in default instead of breaking gameplay.
   unit-tested): the timer counts down each tick; on expiry it drops one stack
   and resets, or reports a cure at zero.
 - **Milk is a gamble, not a guarantee** (`PlayerItemConsumeEvent`, `MILK_BUCKET`)
-  — `milk-cure-chance` (default 0.5) is rolled, only while actually infected
+  — `milk-cure-chance` (default 0.3) is rolled, only while actually infected
   (`SalmonellaService#isInfected`, so a healthy player's glass of milk is a
   silent no-op, not a wasted roll); on a hit it removes `milk-cure-stacks`
   (default 1). A miss plays a quiet "no effect" cue (`ENTITY_VILLAGER_NO`) so
