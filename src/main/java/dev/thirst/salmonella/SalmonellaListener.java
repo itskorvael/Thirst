@@ -2,17 +2,19 @@ package dev.thirst.salmonella;
 
 import dev.thirst.config.ThirstConfig;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 /**
- * Milk cures Salmonella (one stack per {@code milk-cure-stacks}), and quitters
- * drop their damage timer.
+ * Milk has a chance ({@code milk-cure-chance}) to cure Salmonella (one stack
+ * per {@code milk-cure-stacks}), and quitters drop their damage timer.
  */
 public final class SalmonellaListener implements Listener {
 
@@ -29,9 +31,15 @@ public final class SalmonellaListener implements Listener {
         if (event.getItem().getType() != Material.MILK_BUCKET) {
             return;
         }
+        Player player = event.getPlayer();
         ThirstConfig.Salmonella cfg = config.get().salmonella();
-        if (cfg.cureWithMilk()) {
-            salmonella.cure(event.getPlayer(), cfg.milkCureStacks());
+        if (!cfg.cureWithMilk() || !salmonella.isInfected(player)) {
+            return;
+        }
+        if (ThreadLocalRandom.current().nextDouble() < cfg.milkCureChance()) {
+            salmonella.cure(player, cfg.milkCureStacks());
+        } else {
+            salmonella.missedCure(player);
         }
     }
 

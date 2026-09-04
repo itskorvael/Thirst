@@ -53,6 +53,16 @@ public final class SalmonellaService {
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_HURT, 0.4f, 0.6f);
     }
 
+    /** Whether {@code player} currently has any Salmonella stacks. */
+    public boolean isInfected(Player player) {
+        return manager.getSalmonellaStacks(player) > 0;
+    }
+
+    /** Feedback for a milk-cure roll that missed — still infected. */
+    public void missedCure(Player player) {
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.6f, 1.0f);
+    }
+
     /** Remove {@code stacks} stacks immediately (milk). Clears effects if it reaches zero. */
     public void cure(Player player, int stacks) {
         int current = manager.getSalmonellaStacks(player);

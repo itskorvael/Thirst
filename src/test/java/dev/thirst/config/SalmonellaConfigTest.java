@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class SalmonellaConfigTest {
 
     private static ThirstConfig.Salmonella salmonella(List<Integer> durations) {
-        return new ThirstConfig.Salmonella(300, durations, true, 1, 3, 3, 4, 1.0, 5, 5);
+        return new ThirstConfig.Salmonella(300, durations, true, 0.5, 1, 3, 3, 4, 1.0, 5, 5);
     }
 
     @Test

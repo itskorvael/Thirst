@@ -220,8 +220,12 @@ salmonella:
   # every second, so this is really "how long the effects linger after a
   # relog / plugin stop".
   stack-durations-seconds: [30, 45, 60, 90, 120]
-  # Drinking a milk bucket removes this many stacks instantly.
+  # Drinking a milk bucket has a chance to remove stacks instantly.
   cure-with-milk: true
+  # Chance (0.0-1.0) that a milk bucket cures anything at all. Only rolled
+  # while actually infected, so healthy players drinking milk see nothing.
+  milk-cure-chance: 0.5
+  # On a successful roll, how many stacks it removes.
   milk-cure-stacks: 1
   # From this stack level, Nausea (screen wobble) starts. Below it you only get
   # Slowness/Weakness — Nausea's amplifier doesn't change its intensity in

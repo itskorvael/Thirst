@@ -232,9 +232,13 @@ built-in default instead of breaking gameplay.
 - **Decay is pure arithmetic** (`SalmonellaService.decay(...)` → `DecayStep`,
   unit-tested): the timer counts down each tick; on expiry it drops one stack
   and resets, or reports a cure at zero.
-- **Milk cures** (`PlayerItemConsumeEvent`, `MILK_BUCKET`) — `milk-cure-stacks`
-  at a time (default 1, i.e. one glass = one stack), fully configurable;
-  `cure-with-milk: false` disables it.
+- **Milk is a gamble, not a guarantee** (`PlayerItemConsumeEvent`, `MILK_BUCKET`)
+  — `milk-cure-chance` (default 0.5) is rolled, only while actually infected
+  (`SalmonellaService#isInfected`, so a healthy player's glass of milk is a
+  silent no-op, not a wasted roll); on a hit it removes `milk-cure-stacks`
+  (default 1). A miss plays a quiet "no effect" cue (`ENTITY_VILLAGER_NO`) so
+  it doesn't look like nothing happened. `cure-with-milk: false` disables
+  curing entirely.
 - **Severe-stack damage:** from `damage.from-stack` (default 4) the player takes
   `damage.amount` every `damage.interval-seconds` as `DamageType.MAGIC`, with a
   1-health floor **until** `damage.lethal-from-stack` (default 5), where the
