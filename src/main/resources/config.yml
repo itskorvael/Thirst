@@ -176,7 +176,7 @@ drinking:
   dirty-water-restore-amount: 2
   # Chance (0.0–1.0) that drinking a Dirty Water bottle causes / stacks Salmonella.
   # (FRESH and NEUTRAL water never cause it.)
-  salmonella-chance: 0.35
+  salmonella-chance: 0.65
   # A cauldron holds the quality of whatever was poured in — a tagged bucket or
   # bottle carries its quality across; rain / dripstone fills it with dirty
   # runoff (gated by this flag). Any dirty part makes the whole pot dirty.
@@ -201,11 +201,13 @@ drinking:
 
 # ─── Salmonella (dirty-water illness) ─────────────────────────────────────────
 # A stacking illness from drinking DIRTY water (chance = drinking.salmonella-chance).
-# Effects escalate by stack (code-defined, following the spec table):
+# Effects escalate by stack (code-defined, following the spec table). Only the
+# worst stack (5) amplifies to level II — earlier stacks just add more level-I
+# effects rather than stronger ones:
 #   1  Nausea I
-#   2  Nausea I  + Slowness I
-#   3  Nausea II + Weakness I            (+ occasional vomit)
-#   4  Nausea II + Weakness II           (+ periodic damage)
+#   2  Nausea I + Slowness I
+#   3  Nausea I + Weakness I             (+ occasional vomit)
+#   4  Nausea I + Slowness I + Weakness I  (+ periodic damage)
 #   5  Nausea II + Slowness I + Weakness II  (+ lethal damage)
 # Drinking dirty water while infected adds a stack (max 5) and resets the decay
 # timer. The HUD bar turns neon green (hud.color-infected) while infected.

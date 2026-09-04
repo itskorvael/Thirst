@@ -10,11 +10,15 @@ import java.util.List;
  *
  * <pre>
  *   1  Nausea I
- *   2  Nausea I  + Slowness I
- *   3  Nausea II + Weakness I
- *   4  Nausea II + Weakness II            (+ periodic damage)
+ *   2  Nausea I + Slowness I
+ *   3  Nausea I + Weakness I
+ *   4  Nausea I + Slowness I + Weakness I  (+ periodic damage)
  *   5  Nausea II + Slowness I + Weakness II (+ lethal damage)
  * </pre>
+ *
+ * <p>Only the worst stack amplifies to level II — stacks 1-4 add more level-I
+ * effects rather than stronger ones, so the illness reads as "increasingly
+ * inconvenient" before it becomes "severe" right at the top.
  *
  * <p>The effect <em>structure</em> is code-defined (it maps a fixed illness
  * progression, not tuning numbers); the durations, decay, damage and cure are
@@ -34,22 +38,24 @@ final class SalmonellaEffects {
      * Nausea indicator).
      */
     static List<PotionEffect> forStack(int stack, int durationTicks) {
-        int nausea = stack >= 3 ? 1 : 0;
-        return switch (Math.max(1, Math.min(stack, 5))) {
-            case 1 -> List.of(effect(PotionEffectType.NAUSEA, nausea, durationTicks));
+        int clamped = Math.max(1, Math.min(stack, 5));
+        int amplify = clamped >= 5 ? 1 : 0; // only the top stack reaches level II
+        return switch (clamped) {
+            case 1 -> List.of(effect(PotionEffectType.NAUSEA, 0, durationTicks));
             case 2 -> List.of(
-                    effect(PotionEffectType.NAUSEA, nausea, durationTicks),
+                    effect(PotionEffectType.NAUSEA, 0, durationTicks),
                     effect(PotionEffectType.SLOWNESS, 0, durationTicks));
             case 3 -> List.of(
-                    effect(PotionEffectType.NAUSEA, nausea, durationTicks),
+                    effect(PotionEffectType.NAUSEA, 0, durationTicks),
                     effect(PotionEffectType.WEAKNESS, 0, durationTicks));
             case 4 -> List.of(
-                    effect(PotionEffectType.NAUSEA, nausea, durationTicks),
-                    effect(PotionEffectType.WEAKNESS, 1, durationTicks));
-            default -> List.of(
-                    effect(PotionEffectType.NAUSEA, nausea, durationTicks),
+                    effect(PotionEffectType.NAUSEA, 0, durationTicks),
                     effect(PotionEffectType.SLOWNESS, 0, durationTicks),
-                    effect(PotionEffectType.WEAKNESS, 1, durationTicks));
+                    effect(PotionEffectType.WEAKNESS, 0, durationTicks));
+            default -> List.of(
+                    effect(PotionEffectType.NAUSEA, amplify, durationTicks),
+                    effect(PotionEffectType.SLOWNESS, 0, durationTicks),
+                    effect(PotionEffectType.WEAKNESS, amplify, durationTicks));
         };
     }
 

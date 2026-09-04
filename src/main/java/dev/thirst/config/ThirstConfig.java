@@ -278,7 +278,7 @@ public record ThirstConfig(
                 drinkSec.getInt("fresh-water-restore-amount", 4, 0, max),
                 drinkSec.getInt("neutral-water-restore-amount", 3, 0, max),
                 drinkSec.getInt("dirty-water-restore-amount", 2, 0, max),
-                drinkSec.getDouble("salmonella-chance", 0.35, 0.0, 1.0),
+                drinkSec.getDouble("salmonella-chance", 0.65, 0.0, 1.0),
                 drinkSec.getBoolean("rain-cauldron-always-dirty", true),
                 drinkSec.getBoolean("dirty-while-raining", true),
                 drinkSec.getBoolean("rain-trickle-enabled", false),
