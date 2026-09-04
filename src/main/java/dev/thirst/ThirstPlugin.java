@@ -26,6 +26,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -59,9 +61,13 @@ public final class ThirstPlugin extends JavaPlugin {
     private @Nullable ActionBarSegment externalSegment;
     private @Nullable WaterQualityStore waterStore;
     private @Nullable WaterQualityService waterQuality;
+    private @Nullable SalmonellaService salmonellaService;
 
     /** Tracks the last-seen PlaceholderAPI availability so transitions are logged once. */
     private boolean placeholderApiActive;
+
+    /** Warnings from the most recent config load, for {@code /thirst reload} feedback. */
+    private volatile List<String> lastConfigWarnings = List.of();
 
     @Override
     public void onEnable() {
@@ -94,7 +100,7 @@ public final class ThirstPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
                 new ThirstSprintListener(thirstManager, this::config, speedModifier), this);
 
-        SalmonellaService salmonellaService = new SalmonellaService(thirstManager, this::config);
+        this.salmonellaService = new SalmonellaService(thirstManager, this::config);
         getServer().getPluginManager().registerEvents(
                 new SalmonellaListener(salmonellaService, this::config), this);
 
@@ -150,6 +156,7 @@ public final class ThirstPlugin extends JavaPlugin {
             waterStore = null;
         }
         waterQuality = null;
+        salmonellaService = null;
         getLogger().info("Thirst disabled.");
     }
 
@@ -181,6 +188,17 @@ public final class ThirstPlugin extends JavaPlugin {
             throw new IllegalStateException("ThirstManager accessed before enable / after disable");
         }
         return manager;
+    }
+
+    /**
+     * The Salmonella service. Never {@code null} while the plugin is enabled.
+     */
+    public SalmonellaService salmonella() {
+        SalmonellaService service = this.salmonellaService;
+        if (service == null) {
+            throw new IllegalStateException("SalmonellaService accessed before enable / after disable");
+        }
+        return service;
     }
 
     /**
@@ -237,14 +255,30 @@ public final class ThirstPlugin extends JavaPlugin {
     /**
      * Re-reads {@code config.yml}, swaps in a fresh validated snapshot,
      * re-checks PlaceholderAPI, and restarts the HUD task so a changed update
-     * interval takes effect.
+     * interval takes effect. Every validation warning is both logged and kept
+     * for {@code /thirst reload} to echo back to the command sender — see
+     * {@link #lastConfigWarnings()}.
      */
     public void loadPluginConfig() {
         reloadConfig();
-        this.config = ThirstConfig.load(getConfig(), message -> getLogger().warning(message));
+        List<String> warnings = new ArrayList<>();
+        this.config = ThirstConfig.load(getConfig(), message -> {
+            warnings.add(message);
+            getLogger().warning(message);
+        });
+        this.lastConfigWarnings = List.copyOf(warnings);
         if (hudTask != null) {
             hudTask.setExternalSegment(refreshExternalSegment());
             hudTask.restart();
         }
+    }
+
+    /**
+     * Validation warnings from the most recent {@link #loadPluginConfig()} call
+     * (enable or {@code /thirst reload}), for immediate in-game feedback instead
+     * of requiring a console check. Empty when the config was clean.
+     */
+    public List<String> lastConfigWarnings() {
+        return lastConfigWarnings;
     }
 }

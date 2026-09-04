@@ -56,7 +56,14 @@ Built in phases; see the checklist below.
   stacks deal periodic `MAGIC` damage (lethal from `damage.lethal-from-stack`),
   occasional vomit cosmetic; the thirst HUD turns **neon green** while infected
   (with a `☣<stacks>` suffix)
-- [ ] Phase 7 — `/thirst` commands, permissions, config validation, `/thirst reload`
+- [x] **Phase 7** — command/permission polish: `/thirst get` works for anyone
+  checking themselves (`thirst.command.thirst`, default on), everything that
+  targets another player or mutates state needs `thirst.admin.thirst` (default
+  op); `/thirst salmonella get|set|cure` for status checks and admin/testing
+  control over the illness; `/thirst reload` now echoes config-validation
+  warnings straight to the sender instead of console-only. (Rain trickle-drink
+  and the water-quality wand/chunk-outline visualizer were left as the spec's
+  optional stretch goals — not implemented.)
 - [ ] Phase 8 — HUD v2 (resource-pack droplet glyphs), optional
 
 ## Configuration
@@ -96,7 +103,8 @@ built-in default instead of breaking gameplay.
     authority), so `ThirstSprintListener` cancels the jump outright *while
     sprinting*. Release sprint and jumping is normal.
 - **Folia is not supported** (uses the Bukkit scheduler).
-- `/thirst` is a minimal debug command this phase; Phase 7 owns the real one.
+- `/thirst` is a minimal debug command this phase; Phase 7 owns permissions
+  and the fuller command set.
 
 ### Phase 3 design notes (for review)
 
@@ -253,6 +261,36 @@ built-in default instead of breaking gameplay.
 - New config: `hud.color-infected`, `hud.salmonella-indicator`, and the
   `salmonella.{milk-cure-stacks,vomit-from-stack}` + `salmonella.damage.*`
   subsection.
+
+### Phase 7 design notes (for review)
+
+- **Two permissions instead of one.** Previously the entire `/thirst` tree sat
+  behind `thirst.admin.thirst`. Now `thirst.command.thirst` (default **true**)
+  covers only the no-target `get` forms — a player checking their own thirst
+  or Salmonella status — while `thirst.admin.thirst` (default op) is required
+  for `/thirst get <target>`, `set`, `reload`, and every `salmonella`
+  subcommand. Each Brigadier node carries its own `.requires(...)`, so the
+  permission split is enforced per-branch, not just at the top of the tree.
+  `/water` stays fully behind `thirst.admin.water` — it edits world state, not
+  personal status, so there's no self-service case for it.
+- **`/thirst salmonella get|set|cure`** exist mainly because testing Phase 6
+  without them meant chugging real dirty-water bottles to reach a given stack
+  count. `set` clamps into `[0, max-stacks]` and applies/clears effects
+  immediately (`SalmonellaService#setStacks`); `cure` (`#cureAll`) clears
+  unconditionally, bypassing `milk-cure-chance` and `milk-cure-stacks` — it's
+  an admin override, not a simulated milk bucket.
+- **`/thirst reload` now surfaces config-validation results.** `ThirstConfig`
+  has clamped bad values and logged warnings since Phase 1, but only to the
+  console. `ThirstPlugin#loadPluginConfig` now also collects every warning
+  from that pass (`lastConfigWarnings()`), and the reload command prints the
+  count and each message straight to whoever ran it — an admin editing
+  `config.yml` sees typos immediately instead of needing console access.
+- **Left out on purpose:** the spec calls out rain trickle-drink and a
+  water-quality wand + chunk-outline visualizer as optional stretch goals for
+  this phase. Both are meaningful new features (a passive-regen mechanic and a
+  new interactive tool with particle rendering) rather than polish, so they
+  were skipped for now; `drinking.rain-trickle-*` and `water.wand-*` remain in
+  `config.yml` unused, ready for either to be picked up later.
 
 ### Sharing the action bar with RealisticSeasons (or any plugin)
 

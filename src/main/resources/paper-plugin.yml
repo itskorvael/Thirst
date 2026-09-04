@@ -28,8 +28,11 @@ permissions:
       thirst.admin.thirst: true
       thirst.admin.water: true
   thirst.admin.thirst:
-    description: Manage player thirst levels and reload the plugin.
+    description: Manage any player's thirst / Salmonella state and reload the plugin.
     default: op
   thirst.admin.water:
     description: Paint per-chunk water quality (delegable to world builders).
     default: op
+  thirst.command.thirst:
+    description: Check your own thirst / Salmonella status with /thirst get.
+    default: true

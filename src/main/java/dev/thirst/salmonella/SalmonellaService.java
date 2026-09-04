@@ -84,6 +84,23 @@ public final class SalmonellaService {
         secondsSinceDamage.remove(playerId);
     }
 
+    /** Admin/testing: force the stack count to an exact value, applying or clearing effects immediately. */
+    public void setStacks(Player player, int stacks) {
+        ThirstConfig.Salmonella cfg = config.get().salmonella();
+        int clamped = Math.max(0, Math.min(stacks, cfg.maxStacks()));
+        if (clamped <= 0) {
+            clear(player);
+            return;
+        }
+        manager.setSalmonella(player, clamped, cfg.decayIntervalSeconds() * TICKS_PER_SECOND);
+        applyEffects(player, clamped, cfg);
+    }
+
+    /** Admin/testing: clear every stack immediately, bypassing the milk-cure chance and stack limit. */
+    public void cureAll(Player player) {
+        clear(player);
+    }
+
     // ── Per-second tick ─────────────────────────────────────────────────────
 
     public void tick(Player player) {
