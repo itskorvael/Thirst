@@ -12,6 +12,8 @@ version = property("version") as String
 val defaultApiVersion = "26.1"
 val paperApi = providers.gradleProperty("paperApi").getOrElse("26.1.2.build.74-stable")
 val apiVersion = providers.gradleProperty("apiVersion").getOrElse(defaultApiVersion)
+// Paper 1.21.x servers run on Java 21; 26.x needs 25. Override with -PjavaVersion=21.
+val javaVersion = providers.gradleProperty("javaVersion").getOrElse("25").toInt()
 
 repositories {
     mavenCentral()
@@ -53,14 +55,14 @@ dependencies {
 java {
     toolchain {
         // Paper 26.1.x requires Java 25 at runtime; compile against the same.
-        languageVersion.set(JavaLanguageVersion.of(25))
+        languageVersion.set(JavaLanguageVersion.of(javaVersion))
     }
     withSourcesJar()
 }
 
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
-    options.release.set(25)
+    options.release.set(javaVersion)
     options.compilerArgs.add("-Xlint:all,-processing")
 }
 
