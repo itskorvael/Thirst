@@ -357,3 +357,7 @@ string works here, not just RealisticSeasons'.
 
 4. **Buckets are tagged too** (*Bucket of Fresh/Neutral/Dirty Water*), and rain
    makes water dirty (`dirty-while-raining`, `rain-cauldron-always-dirty`).
+
+## License
+
+MIT — see [LICENSE](LICENSE).

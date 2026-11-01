@@ -1,7 +1,7 @@
 name: Thirst
 version: '${version}'
-main: dev.thirst.ThirstPlugin
-loader: dev.thirst.ThirstPluginLoader
+main: io.github.itskorvael.thirst.ThirstPlugin
+loader: io.github.itskorvael.thirst.ThirstPluginLoader
 api-version: '26.1'
 description: Adds a thirst mechanic that runs alongside vanilla hunger.
 authors:
