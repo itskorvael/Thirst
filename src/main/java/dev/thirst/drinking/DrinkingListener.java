@@ -35,8 +35,7 @@ import java.util.function.Supplier;
  *       fills a quality-tagged {@link WaterContainers water bottle} instead of
  *       the plain vanilla one;</li>
  *   <li>drinking that bottle restores thirst — more for FRESH, less for DIRTY —
- *       and DIRTY rolls {@code salmonella-chance} to add a Salmonella stack
- *       (Phase 6 turns stacks into effects).</li>
+ *       and DIRTY rolls {@code salmonella-chance} to add a Salmonella stack.</li>
  * </ul>
  *
  * <p>Bucket filling lives in {@link BucketListener}; cauldron water quality in

@@ -1,6 +1,5 @@
 /**
- * Brigadier command tree. Phase 2 ships a minimal {@code /thirst get|set|reload}
- * for testing the core; Phase 7 expands it and adds {@code /water}.
+ * Brigadier command trees for {@code /thirst} and {@code /water}.
  */
 @NullMarked
 package dev.thirst.command;

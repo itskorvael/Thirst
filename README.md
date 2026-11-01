@@ -31,48 +31,55 @@ it at a local install via `org.gradle.java.installations.paths`).
 The SQLite JDBC driver is **not** shaded — `ThirstPluginLoader` fetches it into
 Paper's shared library cache at load time.
 
-## Development status
+## Features
 
-Built in phases; see the checklist below.
+- **Thirst meter** (0–20, mirrors hunger) that drains with exertion — sprinting,
+  jumping, swimming, fighting, mining — and at zero deals starvation damage.
+  At the critical threshold sprinting stops giving a speed bonus.
+- **HUD**: an action-bar bar or percent (blue → red when critical, neon green
+  while infected), with a boss-bar debug/fallback mode. Can share the action bar
+  with other plugins through PlaceholderAPI.
+- **Bottle-based drinking**: fill a glass bottle or bucket at any water block or
+  cauldron to get a *Fresh*, *Neutral* or *Dirty* item, tagged with the quality of
+  the chunk it came from. Rain makes water dirty.
+- **Per-chunk water quality** stored in SQLite and painted with `/water`.
+  Unpainted chunks are auto-detected (water → `natural-water-quality`).
+- **Salmonella**: drinking dirty water can add a stack (up to 5). Each stack adds
+  escalating potion effects, decays over time, and can be cured with milk (a
+  chance, not a guarantee). Severe stacks deal periodic damage.
+- **Everything is configurable.** Every gameplay number lives in `config.yml`;
+  invalid values log a warning and fall back to the default.
 
-- [x] **Phase 1** — project skeleton, `paper-plugin.yml`, config load + validation
-- [x] **Phase 2** — thirst core: `ThirstManager` (PDC-backed), exhaustion listeners,
-  per-second drain + starvation task, `ThirstMath` pure functions + unit tests,
-  minimal `/thirst get|set|reload`
-- [x] **Phase 3** — HUD: action-bar text (bar or percent, blue → red at critical),
-  `BOSSBAR` debug/fallback mode, pluggable `HudRenderer` strategy for the future
-  resource-pack mode, `ThirstHudFormatter` pure functions + unit tests, optional
-  PlaceholderAPI `hud.external-segment` (share the action bar with RealisticSeasons)
-- [x] **Phase 4** — per-chunk water quality: SQLite store (async, single-thread
-  connection), in-memory `Map<ChunkKey, WaterQuality>` cache with write-through,
-  `/water get|setchunk|setregion`, unit + in-memory-SQLite tests
-- [x] **Phase 5** — bottle-based drinking: fill a glass bottle *or bucket* at any
-  water block or cauldron → tagged *Bottle/Bucket of Fresh/Neutral/Dirty Water* →
-  drink to restore thirst; dirty water rolls a Salmonella stack; rain makes every
-  source dirty; cauldrons hold the quality of what's poured in; pouring a tagged
-  bucket sets a `NEUTRAL` chunk's quality
-- [x] **Phase 6** — Salmonella: per-stack potion effects (Nausea → +Slowness →
-  +Weakness), a stack decays every `decay-interval-seconds`, milk cures, severe
-  stacks deal periodic `MAGIC` damage (lethal from `damage.lethal-from-stack`),
-  occasional vomit cosmetic; the thirst HUD turns **neon green** while infected
-  (with a `☣<stacks>` suffix)
-- [x] **Phase 7** — command/permission polish: `/thirst get` works for anyone
-  checking themselves (`thirst.command.thirst`, default on), everything that
-  targets another player or mutates state needs `thirst.admin.thirst` (default
-  op); `/thirst salmonella get|set|cure` for status checks and admin/testing
-  control over the illness; `/thirst reload` now echoes config-validation
-  warnings straight to the sender instead of console-only. (Rain trickle-drink
-  and the water-quality wand/chunk-outline visualizer were left as the spec's
-  optional stretch goals — not implemented.)
-- [ ] Phase 8 — HUD v2 (resource-pack droplet glyphs), optional
+## Commands and permissions
 
-## Configuration
+| Command | Permission | Default |
+|---|---|---|
+| `/thirst get` | `thirst.command.thirst` | everyone |
+| `/thirst salmonella get` | `thirst.command.thirst` | everyone |
+| `/thirst get <player>` | `thirst.admin.thirst` | op |
+| `/thirst set <player> <level>` | `thirst.admin.thirst` | op |
+| `/thirst salmonella set <player> <stacks>` | `thirst.admin.thirst` | op |
+| `/thirst salmonella cure <player>` | `thirst.admin.thirst` | op |
+| `/thirst reload` | `thirst.admin.thirst` | op |
+| `/water get` | `thirst.admin.water` | op |
+| `/water setchunk <fresh\|neutral\|dirty>` | `thirst.admin.water` | op |
+| `/water setregion ...` | `thirst.admin.water` | op |
+
+`thirst.admin` grants both admin permissions. `/thirst reload` prints any
+config-validation warnings straight to whoever ran it.
+
+## Roadmap
+
+Not implemented: a water-quality wand with a chunk-outline preview, a rain
+trickle-drink, and a resource-pack HUD with droplet glyphs.
+
+## Configuration and design notes
 
 All gameplay numbers live in `config.yml` (copied to the data folder on first
 run). Nothing is hardcoded. Invalid values log a warning and fall back to the
 built-in default instead of breaking gameplay.
 
-### Phase 2 design notes (for review)
+### Design notes: thirst core
 
 - **Passive drain is folded into the exhaustion bucket.** Idle time adds
   `exhaustion-threshold / base-drain-interval-seconds` per second, so "1 point
@@ -103,10 +110,8 @@ built-in default instead of breaking gameplay.
     authority), so `ThirstSprintListener` cancels the jump outright *while
     sprinting*. Release sprint and jumping is normal.
 - **Folia is not supported** (uses the Bukkit scheduler).
-- `/thirst` is a minimal debug command this phase; Phase 7 owns permissions
-  and the fuller command set.
 
-### Phase 3 design notes (for review)
+### Design notes: HUD
 
 - **One shared HUD task**, not one task per player — it iterates online players
   each interval. Joiners are picked up next tick; leavers cleaned in `onQuit`.
@@ -115,7 +120,7 @@ built-in default instead of breaking gameplay.
   there.
 - **`hud-mode` is a pluggable strategy** (`HudRenderer`): `ACTIONBAR_TEXT` and
   `BOSSBAR` today; `ACTIONBAR_RESOURCEPACK` currently logs a one-time warning and
-  falls back to `ACTIONBAR_TEXT`. Phase 8 adds the third implementation without
+  falls back to `ACTIONBAR_TEXT`. A resource-pack renderer can be added without
   touching the task.
 - **Action-bar "yield" is cooperative, not automatic.** Paper exposes no way to
   detect another plugin's outgoing action-bar packets, so
@@ -129,7 +134,7 @@ built-in default instead of breaking gameplay.
   3. If Thirst is the only action-bar user (common), set
      `actionbar-overwrite-others: true`.
 
-### Phase 4 design notes (for review)
+### Design notes: water quality
 
 - **Storage:** SQLite (`water_quality.db` in the plugin folder), table
   `chunk_water_quality (world_name, chunk_x, chunk_z, quality)` with a
@@ -170,7 +175,7 @@ built-in default instead of breaking gameplay.
   `WARNING: ... native access ...` to the console on first DB use. Cosmetic —
   it's the JDK's new native-access notice, not an error.
 
-### Phase 5 design notes (for review)
+### Design notes: drinking
 
 - **Bottle-only for *drinking*, no drink-from-block** — per the earlier
   maintainer decision. Right-clicking **any water block** — natural or placed,
@@ -198,8 +203,7 @@ built-in default instead of breaking gameplay.
   source-quality of their own location.
 - **Salmonella:** dirty water rolls `salmonella-chance` and, on a hit, bumps the
   stack count + `salmonella_ticks_remaining` in the PDC (capped at
-  `stack-durations-seconds.size()`). *Phase 6* turns stacks into effects, decay
-  and the cure — for now `/thirst get` just shows the number climb.
+  `stack-durations-seconds.size()`). Stacks then drive the effects, decay and cure.
 - **`dirty-while-raining`** (default on) — while a world has active rain/storm,
   every open source there resolves DIRTY regardless of chunk. Checked at fill
   time, so it reverts the moment the weather clears. Containers keep their
@@ -213,7 +217,7 @@ built-in default instead of breaking gameplay.
   the Salmonella stack maths and the cauldron `mix()` rule — are tested; the
   rest needs an in-game check.
 
-### Phase 6 design notes (for review)
+### Design notes: Salmonella
 
 - **Stack state lives in the PDC** (`salmonella_stacks`, `salmonella_ticks_remaining`),
   written by `ThirstManager` and owned by `SalmonellaService`. No task of its
@@ -262,7 +266,7 @@ built-in default instead of breaking gameplay.
   `salmonella.{milk-cure-stacks,vomit-from-stack}` + `salmonella.damage.*`
   subsection.
 
-### Phase 7 design notes (for review)
+### Design notes: commands and permissions
 
 - **Two permissions instead of one.** Previously the entire `/thirst` tree sat
   behind `thirst.admin.thirst`. Now `thirst.command.thirst` (default **true**)
@@ -273,24 +277,21 @@ built-in default instead of breaking gameplay.
   permission split is enforced per-branch, not just at the top of the tree.
   `/water` stays fully behind `thirst.admin.water` — it edits world state, not
   personal status, so there's no self-service case for it.
-- **`/thirst salmonella get|set|cure`** exist mainly because testing Phase 6
+- **`/thirst salmonella get|set|cure`** exist mainly because testing Salmonella
   without them meant chugging real dirty-water bottles to reach a given stack
   count. `set` clamps into `[0, max-stacks]` and applies/clears effects
   immediately (`SalmonellaService#setStacks`); `cure` (`#cureAll`) clears
   unconditionally, bypassing `milk-cure-chance` and `milk-cure-stacks` — it's
   an admin override, not a simulated milk bucket.
 - **`/thirst reload` now surfaces config-validation results.** `ThirstConfig`
-  has clamped bad values and logged warnings since Phase 1, but only to the
+  has clamped bad values and logged warnings from the start, but only to the
   console. `ThirstPlugin#loadPluginConfig` now also collects every warning
   from that pass (`lastConfigWarnings()`), and the reload command prints the
   count and each message straight to whoever ran it — an admin editing
   `config.yml` sees typos immediately instead of needing console access.
-- **Left out on purpose:** the spec calls out rain trickle-drink and a
-  water-quality wand + chunk-outline visualizer as optional stretch goals for
-  this phase. Both are meaningful new features (a passive-regen mechanic and a
-  new interactive tool with particle rendering) rather than polish, so they
-  were skipped for now; `drinking.rain-trickle-*` and `water.wand-*` remain in
-  `config.yml` unused, ready for either to be picked up later.
+- **Left out on purpose:** rain trickle-drink and a water-quality wand with a
+  chunk-outline visualizer. Both are new features rather than polish, so they
+  were not built, and their config keys were removed rather than left unused.
 
 ### Sharing the action bar with RealisticSeasons (or any plugin)
 
@@ -322,7 +323,7 @@ string works here, not just RealisticSeasons'.
 - Boss-bar mode uses the **Adventure `BossBar`** API (per-player, shown/hidden
   via the player `Audience`), not the legacy `org.bukkit.boss` one.
 
-### Open questions (defaults chosen, pending review)
+### Open questions (defaults chosen)
 
 1. **Sprint gating** — *resolved:* at/below the critical threshold the sprint
    speed bonus is neutralised (`disable-sprint-when-critical`,
@@ -336,7 +337,7 @@ string works here, not just RealisticSeasons'.
 4. **Scale** — SQLite is assumed sufficient. Revisit if chunk counts reach the
    millions or multiple servers share the store.
 
-### Spec changes (confirmed with maintainer)
+### Deviations from the original spec
 
 1. **Drinking is bottle-based only.** Fill an empty glass bottle at a water
    source block (or water cauldron) to receive a *Bottle of Fresh Water* or

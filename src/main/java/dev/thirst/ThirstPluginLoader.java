@@ -11,7 +11,7 @@ import org.jspecify.annotations.NullMarked;
 /**
  * Supplies Thirst's runtime library dependencies via Paper's library loader.
  *
- * <p>The SQLite JDBC driver (used from Phase 4 for per-chunk water quality) is
+ * <p>The SQLite JDBC driver (used for per-chunk water quality) is
  * downloaded to the shared Paper library cache at load time instead of being
  * shaded into the plugin jar. This keeps the artifact small and avoids
  * class-path duplication when several plugins use the same driver.

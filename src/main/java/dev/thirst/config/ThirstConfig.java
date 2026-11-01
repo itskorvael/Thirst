@@ -65,8 +65,7 @@ public record ThirstConfig(
 
     /**
      * The {@code water:} section — natural-water detection for unpainted chunks,
-     * the {@code /water setregion} safety cap, and the (later-phase)
-     * water-quality wand tool.
+     * and the {@code /water setregion} safety cap.
      *
      * @param detectWater         scan an unpainted chunk for surface water on first query
      * @param naturalWaterQuality quality of an unpainted chunk that has water (detection on)
@@ -74,9 +73,7 @@ public record ThirstConfig(
     public record Water(
             boolean detectWater,
             WaterQuality naturalWaterQuality,
-            int maxRegionChunks,
-            boolean wandEnabled,
-            String wandMaterial
+            int maxRegionChunks
     ) {}
 
     /** Core thirst drain / damage numbers. */
@@ -116,7 +113,7 @@ public record ThirstConfig(
             double netherPerSecond
     ) {}
 
-    /** Bottle-based drinking and the optional rain trickle. */
+    /** Bottle-based drinking: restore amounts, Salmonella chance, rain rules, item names. */
     public record Drinking(
             int cooldownTicks,
             int freshWaterRestoreAmount,
@@ -125,9 +122,6 @@ public record ThirstConfig(
             double salmonellaChance,
             boolean rainCauldronAlwaysDirty,
             boolean dirtyWhileRaining,
-            boolean rainTrickleEnabled,
-            int rainTrickleAmount,
-            int rainTrickleIntervalSeconds,
             String freshBottleName,
             String neutralBottleName,
             String dirtyBottleName,
@@ -241,9 +235,7 @@ public record ThirstConfig(
         Water water = new Water(
                 waterSec.getBoolean("detect-water", true),
                 waterSec.getEnum("natural-water-quality", WaterQuality.DIRTY, WaterQuality::parse),
-                waterSec.getInt("max-region-chunks", 50_000, 1, 10_000_000),
-                waterSec.getBoolean("wand-enabled", true),
-                waterSec.getNonBlankString("wand-material", "BLAZE_ROD")
+                waterSec.getInt("max-region-chunks", 50_000, 1, 10_000_000)
         );
 
         Reader thirstSec = root.section("thirst");
@@ -283,9 +275,6 @@ public record ThirstConfig(
                 drinkSec.getDouble("salmonella-chance", 0.65, 0.0, 1.0),
                 drinkSec.getBoolean("rain-cauldron-always-dirty", true),
                 drinkSec.getBoolean("dirty-while-raining", true),
-                drinkSec.getBoolean("rain-trickle-enabled", false),
-                drinkSec.getInt("rain-trickle-amount", 1, 0, max),
-                drinkSec.getInt("rain-trickle-interval-seconds", 20, 1, 3600),
                 drinkSec.getNonBlankString("fresh-bottle-name", "<aqua>Bottle of Freshwater"),
                 drinkSec.getNonBlankString("neutral-bottle-name", "<gray>Bottle of Water"),
                 drinkSec.getNonBlankString("dirty-bottle-name", "<color:#8a7f4a>Bottle of Dirty Water"),

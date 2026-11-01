@@ -36,17 +36,17 @@ public final class ThirstKeys {
         return exhaustion;
     }
 
-    /** {@code int} 0..5 — Salmonella severity (Phase 6). */
+    /** {@code int} 0..5 — Salmonella severity. */
     public NamespacedKey salmonellaStacks() {
         return salmonellaStacks;
     }
 
-    /** {@code int} — server ticks left on the current Salmonella effect (Phase 6). */
+    /** {@code int} — server ticks left on the current Salmonella effect. */
     public NamespacedKey salmonellaTicksRemaining() {
         return salmonellaTicksRemaining;
     }
 
-    /** {@code long} — {@code System.currentTimeMillis()} of the last drink (Phase 5/6). */
+    /** {@code long} — {@code System.currentTimeMillis()} of the last drink. */
     public NamespacedKey lastDrinkTimestamp() {
         return lastDrinkTimestamp;
     }

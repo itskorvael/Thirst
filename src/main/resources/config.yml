@@ -108,10 +108,6 @@ water:
   # Safety cap on /water setregion — the command is rejected if the rectangle
   # covers more chunk columns than this.
   max-region-chunks: 50000
-  # Chunk-outline particle preview shown while using the water-quality wand
-  # (optional feature, later phase).
-  wand-enabled: true
-  wand-material: BLAZE_ROD
 
 # ─── Thirst mechanics ─────────────────────────────────────────────────────────
 thirst:
@@ -193,11 +189,6 @@ drinking:
   fresh-bucket-name: "<aqua>Bucket of Freshwater"
   neutral-bucket-name: "<gray>Bucket of Water"
   dirty-bucket-name: "<color:#8a7f4a>Bucket of Dirty Water"
-
-  # Optional stretch goal (Phase 7): standing in rain slowly restores thirst.
-  rain-trickle-enabled: false
-  rain-trickle-amount: 1
-  rain-trickle-interval-seconds: 20
 
 # ─── Salmonella (dirty-water illness) ─────────────────────────────────────────
 # A stacking illness from drinking DIRTY water (chance = drinking.salmonella-chance).

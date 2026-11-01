@@ -5,8 +5,8 @@ loader: dev.thirst.ThirstPluginLoader
 api-version: '26.1'
 description: Adds a thirst mechanic that runs alongside vanilla hunger.
 authors:
-  - Thirst contributors
-website: https://github.com/example/thirst
+  - Antonio
+website: https://github.com/itskorvael/Thirst
 
 # Optional: used only by hud.external-segment. Thirst loads and runs fine
 # without it.

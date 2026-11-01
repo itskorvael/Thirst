@@ -26,7 +26,7 @@ dependencies {
     // Runtime requires Java 25 — see the toolchain block below.
     compileOnly("io.papermc.paper:paper-api:26.1.2.build.74-stable")
 
-    // SQLite driver for per-chunk water-quality storage (Phase 4).
+    // SQLite driver for per-chunk water-quality storage.
     // Not shaded: it is pulled in at runtime by ThirstPluginLoader via Paper's
     // library loader, so it stays compileOnly here.
     compileOnly("org.xerial:sqlite-jdbc:3.53.4.0")

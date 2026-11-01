@@ -1,5 +1,5 @@
 /**
- * Per-chunk water quality model. Storage, cache and commands arrive in Phase 4.
+ * Per-chunk water quality: the model, SQLite store and in-memory cache.
  */
 @NullMarked
 package dev.thirst.water;

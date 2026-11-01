@@ -34,20 +34,11 @@ import org.jspecify.annotations.Nullable;
 /**
  * Entry point for the Thirst plugin.
  *
- * <p>Wired up so far:
- * <ol>
- *   <li>Phase 1 — configuration loading + validation</li>
- *   <li>Phase 2 — thirst core: {@link ThirstManager}, exhaustion listeners,
- *       the per-second drain / starvation task, and a minimal {@code /thirst}
- *       debug command</li>
- *   <li>Phase 3 — the HUD ({@link ThirstHudTask}): action-bar text, or a boss
- *       bar in debug/fallback mode</li>
- *   <li>Phase 4 — per-chunk water quality ({@link WaterQualityService} over
- *       {@link WaterQualityStore} SQLite) and the {@code /water} commands</li>
- *   <li>Phase 5 — bottle-based drinking
- *       ({@link dev.thirst.drinking.DrinkingListener})</li>
- * </ol>
- * Still to come: Salmonella (6), full commands (7).
+ * <p>Wires together configuration, the thirst core ({@link ThirstManager} and
+ * its drain task), the HUD ({@link ThirstHudTask}), per-chunk water quality
+ * ({@link WaterQualityService} over a {@link WaterQualityStore} SQLite store),
+ * bottle drinking, Salmonella ({@link SalmonellaService}) and the {@code /thirst}
+ * and {@code /water} commands.
  */
 @NullMarked
 public final class ThirstPlugin extends JavaPlugin {
