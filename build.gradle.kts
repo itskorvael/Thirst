@@ -5,6 +5,14 @@ plugins {
 group = property("group") as String
 version = property("version") as String
 
+// Default target is Paper 26.1.2. Build for another Paper line with e.g.
+//   ./gradlew build -PpaperApi=26.2.build.135-stable -PapiVersion=26.2
+// which sets the compile API and the plugin's `api-version`, and tags the jar
+// with a `paper-<apiVersion>` classifier.
+val defaultApiVersion = "26.1"
+val paperApi = providers.gradleProperty("paperApi").getOrElse("26.1.2.build.74-stable")
+val apiVersion = providers.gradleProperty("apiVersion").getOrElse(defaultApiVersion)
+
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/") {
@@ -22,9 +30,10 @@ configurations.testImplementation {
 }
 
 dependencies {
-    // Paper 26.1.2 (year-based versioning; the "26.1" drop, hotfix line 26.1.2).
+    // Paper 26.1.2 by default (year-based versioning; the "26.1" drop, hotfix
+    // line 26.1.2); override with -PpaperApi, see the top of this file.
     // Runtime requires Java 25 — see the toolchain block below.
-    compileOnly("io.papermc.paper:paper-api:26.1.2.build.74-stable")
+    compileOnly("io.papermc.paper:paper-api:$paperApi")
 
     // SQLite driver for per-chunk water-quality storage.
     // Not shaded: it is pulled in at runtime by ThirstPluginLoader via Paper's
@@ -56,7 +65,7 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 tasks.processResources {
-    val props = mapOf("version" to project.version)
+    val props = mapOf("version" to project.version, "apiVersion" to apiVersion)
     inputs.properties(props)
     filesMatching("paper-plugin.yml") {
         expand(props)
@@ -72,4 +81,7 @@ tasks.test {
 
 tasks.jar {
     archiveBaseName.set("Thirst")
+    if (apiVersion != defaultApiVersion) {
+        archiveClassifier.set("paper-$apiVersion")
+    }
 }
