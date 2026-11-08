@@ -24,8 +24,7 @@ import java.util.function.Supplier;
  *
  * <p>Resolution order for a chunk:
  * <ol>
- *   <li>explicitly painted (in the cache / DB) — including a value adopted from
- *       a poured bucket — wins outright;</li>
+ *   <li>explicitly painted by an admin (in the cache / DB) wins outright;</li>
  *   <li>otherwise, if {@code water.detect-water} is on and the chunk has surface
  *       water, {@code water.natural-water-quality} (default DIRTY);</li>
  *   <li>otherwise {@code default-water-quality} (default NEUTRAL).</li>
@@ -173,7 +172,7 @@ public final class WaterQualityService {
         return world.getBlockAt(key.x(), key.y(), key.z()).getType() == Material.WATER;
     }
 
-    /** Whether an admin (or a poured bucket) has explicitly set this chunk. */
+    /** Whether an admin has explicitly set this chunk. */
     public boolean isExplicitlySet(ChunkKey key) {
         return cache.containsKey(key);
     }

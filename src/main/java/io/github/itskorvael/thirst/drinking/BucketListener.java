@@ -1,6 +1,5 @@
 package io.github.itskorvael.thirst.drinking;
 
-import io.github.itskorvael.thirst.water.ChunkKey;
 import io.github.itskorvael.thirst.water.WaterQuality;
 import io.github.itskorvael.thirst.water.WaterQualityService;
 import org.bukkit.Material;
@@ -22,9 +21,8 @@ import org.bukkit.inventory.ItemStack;
  *       quality), the same way {@link DrinkingListener} tags bottles;</li>
  *   <li><b>empty into the world</b> — the poured block is tracked with the
  *       bucket's quality (see {@link WaterQualityService#trackPoured}), so
- *       scooping it back up can't launder it; and pouring into a chunk whose
- *       quality is still {@link WaterQuality#NEUTRAL} also sets that chunk to the
- *       bucket's quality;</li>
+ *       scooping it back up can't launder it. Pouring never changes the
+ *       chunk's own quality — only admins paint chunks;</li>
  *   <li><b>empty into a cauldron</b> — handled by {@link CauldronWaterTracker}.</li>
  * </ul>
  */
@@ -76,15 +74,6 @@ public final class BucketListener implements Listener {
             return;
         }
 
-        Block placed = event.getBlock();
-        water.trackPoured(placed, poured);
-        if (poured == WaterQuality.NEUTRAL) {
-            return;
-        }
-
-        ChunkKey chunk = ChunkKey.fromBlock(placed.getWorld(), placed.getX(), placed.getZ());
-        if (water.qualityAt(chunk) == WaterQuality.NEUTRAL) {
-            water.setChunk(chunk, poured);
-        }
+        water.trackPoured(event.getBlock(), poured);
     }
 }

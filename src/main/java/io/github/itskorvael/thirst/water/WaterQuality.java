@@ -10,9 +10,7 @@ import java.util.Locale;
  * <ul>
  *   <li>{@link #FRESH} — safe, restores the most thirst.</li>
  *   <li>{@link #NEUTRAL} — no established quality; the default for chunks an
- *       admin has not painted. Pouring water from a tagged bucket into a neutral
- *       chunk sets the chunk to that quality. Restores a middling amount, no
- *       illness.</li>
+ *       admin has not painted. Restores a middling amount, no illness.</li>
  *   <li>{@link #DIRTY} — restores the least and can cause Salmonella.</li>
  * </ul>
  */

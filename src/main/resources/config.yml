@@ -82,8 +82,7 @@ hud:
 # Quality of any chunk an admin has not explicitly painted. FRESH | NEUTRAL | DIRTY
 #   FRESH   — safe, restores the most thirst
 #   NEUTRAL — no established quality (the sensible default for land with no
-#             natural water). Pouring a tagged Bucket of Fresh/Dirty Water into
-#             a still-NEUTRAL chunk sets that chunk to the bucket's quality.
+#             natural water)
 #   DIRTY   — restores the least, can cause Salmonella
 # Per-chunk overrides are stored in water_quality.db (SQLite) in the plugin
 # folder, loaded into memory on startup and written back asynchronously.

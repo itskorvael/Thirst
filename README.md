@@ -165,9 +165,8 @@ built-in default instead of breaking gameplay.
   `default-water-quality` (now **`NEUTRAL`**). Writes hit the cache immediately
   and the DB async, so a drink right after `/water setchunk` sees the new value.
 - **`NEUTRAL`** is "no established quality" — the default for land with no
-  natural water. Pouring a tagged *Bucket of Fresh/Neutral/Dirty Water* into a chunk
-  that is still `NEUTRAL` (`BucketListener#onBucketEmpty`) sets that chunk to the
-  bucket's quality (chunk-level, not per-block). Drinking neutral water restores
+  natural water. Pouring a bucket never changes a chunk's quality; only admins
+  paint chunks. Drinking neutral water restores
   `neutral-water-restore-amount` (default 3) and never causes Salmonella.
 - **Natural-water detection** (`water.detect-water`, default on): an unpainted
   chunk is scanned once — 256 `HeightMap.MOTION_BLOCKING` column checks — the
