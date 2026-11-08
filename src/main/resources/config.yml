@@ -187,7 +187,7 @@ drinking:
   # A cauldron holds the quality of whatever was poured in — a tagged bucket or
   # bottle carries its quality across; rain / dripstone fills it with dirty
   # runoff (gated by this flag). Any dirty part makes the whole pot dirty.
-  # Tracked in memory; resets on restart.
+  # Saved to water_quality.db, so it survives restarts.
   rain-cauldron-always-dirty: true
   # While a world has active rain/storm, every water source there fills DIRTY,
   # regardless of the chunk's quality. Reverts as soon as the weather clears.

@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class PlacedWaterTrackerTest {
+class BlockQualityTrackerTest {
 
     private final List<String> warnings = new ArrayList<>();
 
@@ -21,13 +21,13 @@ class PlacedWaterTrackerTest {
         return new BlockKey("world", x, 64, 0);
     }
 
-    private PlacedWaterTracker tracker(int limit) {
-        return new PlacedWaterTracker(() -> limit, warnings::add);
+    private BlockQualityTracker tracker(int limit) {
+        return new BlockQualityTracker(() -> limit, warnings::add);
     }
 
     @Test
     void recordedWaterKeepsItsQuality() {
-        PlacedWaterTracker tracker = tracker(100);
+        BlockQualityTracker tracker = tracker(100);
         tracker.record(key(1), WaterQuality.DIRTY);
 
         assertEquals(WaterQuality.DIRTY, tracker.qualityOf(key(1)));
@@ -36,7 +36,7 @@ class PlacedWaterTrackerTest {
 
     @Test
     void recordReplacesWhateverWasThere() {
-        PlacedWaterTracker tracker = tracker(100);
+        BlockQualityTracker tracker = tracker(100);
         tracker.record(key(1), WaterQuality.DIRTY);
         tracker.record(key(1), WaterQuality.FRESH);
 
@@ -45,7 +45,7 @@ class PlacedWaterTrackerTest {
 
     @Test
     void mergeLetsDirtyBeatFreshBeatsNeutral() {
-        PlacedWaterTracker tracker = tracker(100);
+        BlockQualityTracker tracker = tracker(100);
         tracker.record(key(1), WaterQuality.FRESH);
         tracker.merge(key(1), WaterQuality.DIRTY);
         assertEquals(WaterQuality.DIRTY, tracker.qualityOf(key(1)));
@@ -61,7 +61,7 @@ class PlacedWaterTrackerTest {
 
     @Test
     void mergeIntoAnUntrackedBlockJustRecords() {
-        PlacedWaterTracker tracker = tracker(100);
+        BlockQualityTracker tracker = tracker(100);
         tracker.merge(key(5), WaterQuality.DIRTY);
 
         assertEquals(WaterQuality.DIRTY, tracker.qualityOf(key(5)));
@@ -69,7 +69,7 @@ class PlacedWaterTrackerTest {
 
     @Test
     void removeForgetsTheBlock() {
-        PlacedWaterTracker tracker = tracker(100);
+        BlockQualityTracker tracker = tracker(100);
         tracker.record(key(1), WaterQuality.DIRTY);
         tracker.remove(key(1));
 
@@ -79,7 +79,7 @@ class PlacedWaterTrackerTest {
 
     @Test
     void pastTheLimitTheOldestEntriesAreDropped() {
-        PlacedWaterTracker tracker = tracker(3);
+        BlockQualityTracker tracker = tracker(3);
         for (int i = 1; i <= 5; i++) {
             tracker.record(key(i), WaterQuality.DIRTY);
         }
@@ -92,7 +92,7 @@ class PlacedWaterTrackerTest {
 
     @Test
     void reRecordingAnEntryMakesItTheNewest() {
-        PlacedWaterTracker tracker = tracker(2);
+        BlockQualityTracker tracker = tracker(2);
         tracker.record(key(1), WaterQuality.DIRTY);
         tracker.record(key(2), WaterQuality.DIRTY);
         tracker.record(key(1), WaterQuality.FRESH); // key 1 is now newer than key 2
@@ -104,7 +104,7 @@ class PlacedWaterTrackerTest {
 
     @Test
     void hittingTheLimitWarnsOnlyOnce() {
-        PlacedWaterTracker tracker = tracker(1);
+        BlockQualityTracker tracker = tracker(1);
         tracker.record(key(1), WaterQuality.DIRTY);
         tracker.record(key(2), WaterQuality.DIRTY);
         tracker.record(key(3), WaterQuality.DIRTY);
@@ -114,7 +114,7 @@ class PlacedWaterTrackerTest {
 
     @Test
     void pruneRemovesEntriesThatAreNoLongerWater() {
-        PlacedWaterTracker tracker = tracker(100);
+        BlockQualityTracker tracker = tracker(100);
         tracker.record(key(1), WaterQuality.DIRTY);
         tracker.record(key(2), WaterQuality.DIRTY);
         tracker.record(key(3), WaterQuality.DIRTY);
@@ -129,7 +129,7 @@ class PlacedWaterTrackerTest {
 
     @Test
     void pruneWorksThroughEverythingOverSeveralBoundedPasses() {
-        PlacedWaterTracker tracker = tracker(100);
+        BlockQualityTracker tracker = tracker(100);
         for (int i = 1; i <= 10; i++) {
             tracker.record(key(i), WaterQuality.DIRTY);
         }
@@ -145,7 +145,7 @@ class PlacedWaterTrackerTest {
 
     @Test
     void pruneKeepsEntriesItCannotCheck() {
-        PlacedWaterTracker tracker = tracker(100);
+        BlockQualityTracker tracker = tracker(100);
         tracker.record(key(1), WaterQuality.DIRTY);
 
         assertEquals(0, tracker.prune(100, k -> true)); // "true" = keep (also used for unloaded chunks)
@@ -154,11 +154,11 @@ class PlacedWaterTrackerTest {
 
     @Test
     void changesAreBatchedAndDrainedOnce() {
-        PlacedWaterTracker tracker = tracker(100);
+        BlockQualityTracker tracker = tracker(100);
         tracker.record(key(1), WaterQuality.DIRTY);
         tracker.record(key(2), WaterQuality.FRESH);
 
-        PlacedWaterTracker.Changes first = tracker.drainChanges();
+        BlockQualityTracker.Changes first = tracker.drainChanges();
         assertEquals(Map.of(key(1), WaterQuality.DIRTY, key(2), WaterQuality.FRESH), first.upserts());
         assertTrue(first.deletes().isEmpty());
         assertTrue(tracker.drainChanges().isEmpty());
@@ -166,31 +166,31 @@ class PlacedWaterTrackerTest {
 
     @Test
     void removingBeforeTheFlushCancelsTheInsertAndQueuesADelete() {
-        PlacedWaterTracker tracker = tracker(100);
+        BlockQualityTracker tracker = tracker(100);
         tracker.record(key(1), WaterQuality.DIRTY);
         tracker.remove(key(1));
 
-        PlacedWaterTracker.Changes changes = tracker.drainChanges();
+        BlockQualityTracker.Changes changes = tracker.drainChanges();
         assertTrue(changes.upserts().isEmpty());
         assertEquals(Set.of(key(1)), changes.deletes());
     }
 
     @Test
     void recordingAgainAfterARemoveCancelsTheDelete() {
-        PlacedWaterTracker tracker = tracker(100);
+        BlockQualityTracker tracker = tracker(100);
         tracker.record(key(1), WaterQuality.DIRTY);
         tracker.drainChanges();
         tracker.remove(key(1));
         tracker.record(key(1), WaterQuality.FRESH);
 
-        PlacedWaterTracker.Changes changes = tracker.drainChanges();
+        BlockQualityTracker.Changes changes = tracker.drainChanges();
         assertEquals(Map.of(key(1), WaterQuality.FRESH), changes.upserts());
         assertFalse(changes.deletes().contains(key(1)));
     }
 
     @Test
     void loadedEntriesAreNotQueuedForWriting() {
-        PlacedWaterTracker tracker = tracker(100);
+        BlockQualityTracker tracker = tracker(100);
         tracker.load(Map.of(key(1), WaterQuality.DIRTY));
 
         assertEquals(WaterQuality.DIRTY, tracker.qualityOf(key(1)));
@@ -199,7 +199,7 @@ class PlacedWaterTrackerTest {
 
     @Test
     void evictedEntriesAreQueuedForDeletion() {
-        PlacedWaterTracker tracker = tracker(1);
+        BlockQualityTracker tracker = tracker(1);
         tracker.record(key(1), WaterQuality.DIRTY);
         tracker.drainChanges();
         tracker.record(key(2), WaterQuality.DIRTY);

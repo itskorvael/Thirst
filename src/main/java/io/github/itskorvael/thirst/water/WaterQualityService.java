@@ -33,7 +33,7 @@ import java.util.function.Supplier;
  * overwritten.
  *
  * <p>Water poured from a tagged bucket is tracked block by block
- * ({@link PlacedWaterTracker}); {@link #qualityForSource} prefers that over the
+ * ({@link BlockQualityTracker}); {@link #qualityForSource} prefers that over the
  * chunk's quality, so poured water keeps the quality it was poured with.
  */
 public final class WaterQualityService {
@@ -48,23 +48,31 @@ public final class WaterQualityService {
     /** Poured-water blocks examined per maintenance pass. */
     private static final int PRUNE_BUDGET = 5_000;
 
-    private final PlacedWaterTracker placed;
+    private final BlockQualityTracker placed;
+    private final BlockQualityTracker cauldrons;
 
     public WaterQualityService(WaterQualityStore store, Supplier<ThirstConfig> config, Consumer<String> warn) {
         this.store = store;
         this.config = config;
-        this.placed = new PlacedWaterTracker(() -> config.get().water().trackedBlockLimit(), warn);
+        this.placed = new BlockQualityTracker(() -> config.get().water().trackedBlockLimit(), warn);
+        this.cauldrons = new BlockQualityTracker(() -> config.get().water().trackedBlockLimit(), warn);
     }
 
     /** Fills the caches from the database. Blocks; call once on enable. */
     public void load() {
         cache.putAll(store.loadAll());
-        placed.load(store.loadPlaced());
+        placed.load(store.loadBlocks(WaterQualityStore.BlockTable.PLACED_WATER));
+        cauldrons.load(store.loadBlocks(WaterQualityStore.BlockTable.CAULDRON_WATER));
     }
 
     /** Number of poured-water blocks currently tracked. */
     public int trackedWaterCount() {
         return placed.size();
+    }
+
+    /** Number of cauldrons whose water quality is currently tracked. */
+    public int trackedCauldronCount() {
+        return cauldrons.size();
     }
 
     public int cachedChunkCount() {
@@ -147,29 +155,42 @@ public final class WaterQualityService {
         }
     }
 
-    /**
-     * Periodic upkeep: drops tracked blocks that are no longer water (in loaded
-     * chunks) and writes pending changes to the database. Main thread.
-     */
-    public void maintainPlaced() {
-        placed.prune(PRUNE_BUDGET, WaterQualityService::stillWaterOrUnknown);
-        flushPlaced();
+    /** The per-cauldron water quality, persisted across restarts. Used by the cauldron listener. */
+    public BlockQualityTracker cauldrons() {
+        return cauldrons;
     }
 
-    /** Writes pending placed-water changes to the database (asynchronously). */
-    public void flushPlaced() {
-        PlacedWaterTracker.Changes changes = placed.drainChanges();
+    /**
+     * Periodic upkeep: drops tracked blocks that are no longer water / no longer
+     * a water cauldron (in loaded chunks) and writes pending changes to the
+     * database. Main thread.
+     */
+    public void maintainTracked() {
+        placed.prune(PRUNE_BUDGET, key -> stillOfType(key, Material.WATER));
+        cauldrons.prune(PRUNE_BUDGET, key -> stillOfType(key, Material.WATER_CAULDRON));
+        flushTracked();
+    }
+
+    /** Writes pending placed-water and cauldron changes to the database (asynchronously). */
+    public void flushTracked() {
+        flush(placed, WaterQualityStore.BlockTable.PLACED_WATER);
+        flush(cauldrons, WaterQualityStore.BlockTable.CAULDRON_WATER);
+    }
+
+    private void flush(BlockQualityTracker tracker, WaterQualityStore.BlockTable table) {
+        BlockQualityTracker.Changes changes = tracker.drainChanges();
         if (!changes.isEmpty()) {
-            store.applyPlaced(changes);
+            store.applyBlocks(table, changes);
         }
     }
 
-    private static boolean stillWaterOrUnknown(BlockKey key) {
+    /** {@code true} if the block is {@code type}, or can't be checked right now (world / chunk not loaded). */
+    private static boolean stillOfType(BlockKey key, Material type) {
         World world = Bukkit.getWorld(key.worldName());
         if (world == null || !world.isChunkLoaded(key.x() >> 4, key.z() >> 4)) {
-            return true; // can't tell right now — keep it
+            return true;
         }
-        return world.getBlockAt(key.x(), key.y(), key.z()).getType() == Material.WATER;
+        return world.getBlockAt(key.x(), key.y(), key.z()).getType() == type;
     }
 
     /** Whether an admin has explicitly set this chunk. */

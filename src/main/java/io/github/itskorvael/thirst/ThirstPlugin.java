@@ -74,7 +74,8 @@ public final class ThirstPlugin extends JavaPlugin {
         this.waterQuality = new WaterQualityService(waterStore, this::config, getLogger()::warning);
         this.waterQuality.load();
         getLogger().info(() -> "Loaded water quality for " + waterQuality.cachedChunkCount()
-                + " chunk(s) and " + waterQuality.trackedWaterCount() + " poured-water block(s).");
+                + " chunk(s), " + waterQuality.trackedWaterCount() + " poured-water block(s) and "
+                + waterQuality.trackedCauldronCount() + " cauldron(s).");
 
         ThirstKeys keys = new ThirstKeys(this);
         this.thirstManager = new ThirstManager(keys, this::config);
@@ -100,7 +101,7 @@ public final class ThirstPlugin extends JavaPlugin {
                 new SalmonellaListener(salmonellaService, this::config), this);
 
         WaterContainers waterContainers = new WaterContainers(this, this::config);
-        CauldronWaterTracker cauldronWaterTracker = new CauldronWaterTracker(waterContainers, this::config);
+        CauldronWaterTracker cauldronWaterTracker = new CauldronWaterTracker(waterContainers, waterQuality.cauldrons(), this::config);
         getServer().getPluginManager().registerEvents(cauldronWaterTracker, this);
         getServer().getPluginManager().registerEvents(new DrinkingListener(
                 thirstManager, waterQuality, waterContainers, cauldronWaterTracker, salmonellaService,
@@ -154,7 +155,7 @@ public final class ThirstPlugin extends JavaPlugin {
             placedWaterTask = null;
         }
         if (waterQuality != null) {
-            waterQuality.flushPlaced();
+            waterQuality.flushTracked();
         }
         if (waterStore != null) {
             waterStore.close();
@@ -292,7 +293,7 @@ public final class ThirstPlugin extends JavaPlugin {
         }
         long periodTicks = config.water().placedWaterPruneSeconds() * 20L;
         this.placedWaterTask = getServer().getScheduler()
-                .runTaskTimer(this, service::maintainPlaced, periodTicks, periodTicks);
+                .runTaskTimer(this, service::maintainTracked, periodTicks, periodTicks);
     }
 
     /**

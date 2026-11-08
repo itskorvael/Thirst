@@ -39,27 +39,43 @@ public final class WaterQualityStore {
             )
             """;
 
-    private static final String CREATE_PLACED_TABLE = """
-            CREATE TABLE IF NOT EXISTS placed_water (
-                world_name TEXT    NOT NULL,
-                x          INTEGER NOT NULL,
-                y          INTEGER NOT NULL,
-                z          INTEGER NOT NULL,
-                quality    TEXT    NOT NULL CHECK (quality IN ('FRESH', 'NEUTRAL', 'DIRTY')),
-                PRIMARY KEY (world_name, x, y, z)
-            )
-            """;
+    /** The per-block tables, one per {@link BlockQualityTracker} use. */
+    public enum BlockTable {
+        PLACED_WATER("placed_water"),
+        CAULDRON_WATER("cauldron_water");
 
-    private static final String UPSERT_PLACED = """
-            INSERT INTO placed_water (world_name, x, y, z, quality)
-            VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT (world_name, x, y, z) DO UPDATE SET quality = excluded.quality
-            """;
+        private final String sqlName;
 
-    private static final String DELETE_PLACED =
-            "DELETE FROM placed_water WHERE world_name = ? AND x = ? AND y = ? AND z = ?";
+        BlockTable(String sqlName) {
+            this.sqlName = sqlName;
+        }
 
-    private static final String SELECT_PLACED = "SELECT world_name, x, y, z, quality FROM placed_water";
+        String create() {
+            return "CREATE TABLE IF NOT EXISTS " + sqlName + """
+                     (
+                        world_name TEXT    NOT NULL,
+                        x          INTEGER NOT NULL,
+                        y          INTEGER NOT NULL,
+                        z          INTEGER NOT NULL,
+                        quality    TEXT    NOT NULL CHECK (quality IN ('FRESH', 'NEUTRAL', 'DIRTY')),
+                        PRIMARY KEY (world_name, x, y, z)
+                    )
+                    """;
+        }
+
+        String upsert() {
+            return "INSERT INTO " + sqlName + " (world_name, x, y, z, quality) VALUES (?, ?, ?, ?, ?) "
+                    + "ON CONFLICT (world_name, x, y, z) DO UPDATE SET quality = excluded.quality";
+        }
+
+        String delete() {
+            return "DELETE FROM " + sqlName + " WHERE world_name = ? AND x = ? AND y = ? AND z = ?";
+        }
+
+        String selectAll() {
+            return "SELECT world_name, x, y, z, quality FROM " + sqlName;
+        }
+    }
 
     private static final String UPSERT = """
             INSERT INTO chunk_water_quality (world_name, chunk_x, chunk_z, quality)
@@ -99,7 +115,9 @@ public final class WaterQualityStore {
             Connection conn = dataSource.getConnection();
             try (Statement statement = conn.createStatement()) {
                 statement.execute(CREATE_TABLE);
-                statement.execute(CREATE_PLACED_TABLE);
+                for (BlockTable table : BlockTable.values()) {
+                    statement.execute(table.create());
+                }
             }
             migrateSchema(conn);
             this.connection = conn;
@@ -198,12 +216,12 @@ public final class WaterQualityStore {
         });
     }
 
-    /** Reads every tracked placed-water block. Blocks; call once on enable. */
-    public Map<BlockKey, WaterQuality> loadPlaced() {
+    /** Reads every block stored in {@code table}. Blocks; call once on enable. */
+    public Map<BlockKey, WaterQuality> loadBlocks(BlockTable table) {
         return supply(() -> {
             Map<BlockKey, WaterQuality> out = new HashMap<>();
             try (Statement statement = requireConnection().createStatement();
-                 ResultSet rs = statement.executeQuery(SELECT_PLACED)) {
+                 ResultSet rs = statement.executeQuery(table.selectAll())) {
                 while (rs.next()) {
                     WaterQuality quality = WaterQuality.parse(rs.getString(5));
                     if (quality != null) {
@@ -215,14 +233,14 @@ public final class WaterQualityStore {
         }).join();
     }
 
-    /** Applies a batch of placed-water deletes then inserts in one transaction. Fire-and-forget. */
-    public CompletableFuture<Void> applyPlaced(PlacedWaterTracker.Changes changes) {
+    /** Applies a batch of deletes then inserts to {@code table} in one transaction. Fire-and-forget. */
+    public CompletableFuture<Void> applyBlocks(BlockTable table, BlockQualityTracker.Changes changes) {
         return run(() -> {
             Connection conn = requireConnection();
             boolean autoCommit = conn.getAutoCommit();
             conn.setAutoCommit(false);
             try {
-                try (PreparedStatement ps = conn.prepareStatement(DELETE_PLACED)) {
+                try (PreparedStatement ps = conn.prepareStatement(table.delete())) {
                     for (BlockKey key : changes.deletes()) {
                         ps.setString(1, key.worldName());
                         ps.setInt(2, key.x());
@@ -232,7 +250,7 @@ public final class WaterQualityStore {
                     }
                     ps.executeBatch();
                 }
-                try (PreparedStatement ps = conn.prepareStatement(UPSERT_PLACED)) {
+                try (PreparedStatement ps = conn.prepareStatement(table.upsert())) {
                     for (Map.Entry<BlockKey, WaterQuality> entry : changes.upserts().entrySet()) {
                         BlockKey key = entry.getKey();
                         ps.setString(1, key.worldName());

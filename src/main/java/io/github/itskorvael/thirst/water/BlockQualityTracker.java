@@ -15,21 +15,20 @@ import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 
 /**
- * Remembers the quality of water blocks that players poured from a tagged
- * bucket (and of the water that flowed out of them), so scooping that water
- * back up keeps the quality it was poured with instead of taking on the
- * chunk's. Without this, dirty water could be "laundered" by pouring it out in a
- * fresh chunk and scooping it up again.
+ * Remembers a water quality per block — used for water poured from a tagged
+ * bucket (so scooping it back up keeps the quality it was poured with, instead
+ * of taking on the chunk's) and for the water inside cauldrons. Each use gets its
+ * own instance and its own database table.
  *
  * <p>Pure bookkeeping with no server dependency, so it is unit-testable. Main
  * thread only. Changes are batched: {@link #drainChanges()} hands the pending
  * inserts / deletes to whoever persists them.
  *
- * <p>Entries live until the water is scooped, is found to be gone by
- * {@link #prune}, or is evicted because the tracker hit its size limit (oldest
+ * <p>Entries live until they are removed, are found to be gone by
+ * {@link #prune}, or are evicted because the tracker hit its size limit (oldest
  * first).
  */
-public final class PlacedWaterTracker {
+public final class BlockQualityTracker {
 
     /** Inserts / updates and deletes accumulated since the last {@link #drainChanges()}. */
     public record Changes(Map<BlockKey, WaterQuality> upserts, Set<BlockKey> deletes) {
@@ -49,7 +48,7 @@ public final class PlacedWaterTracker {
     private final Deque<BlockKey> pruneQueue = new ArrayDeque<>();
     private boolean evictionWarned;
 
-    public PlacedWaterTracker(IntSupplier limit, Consumer<String> warn) {
+    public BlockQualityTracker(IntSupplier limit, Consumer<String> warn) {
         this.limit = limit;
         this.warn = warn;
     }

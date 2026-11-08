@@ -208,11 +208,12 @@ built-in default instead of breaking gameplay.
   mixing the experimental `ItemStack#setData` API with `setItemMeta` was wiping
   the item's custom data (the quality tag).*
 - **Cauldrons hold the quality of what's poured in**, not the chunk
-  (`CauldronWaterTracker`, in-memory `Map<BlockPos, WaterQuality>`): a tagged
+  (`CauldronWaterTracker`, saved in the `cauldron_water` table so it survives
+  restarts): a tagged
   bucket / bottle carries its quality across; rain / dripstone (`NATURAL_FILL`,
   gated by `rain-cauldron-always-dirty`) is dirty runoff. Mixing rule: any dirty
-  part → whole pot dirty. Untracked cauldrons (pre-restart) fall back to the
-  source-quality of their own location.
+  part → whole pot dirty. A cauldron that was never tracked (filled before the
+  plugin was installed) falls back to the source-quality of its own location.
 - **Salmonella:** dirty water rolls `salmonella-chance` and, on a hit, bumps the
   stack count + `salmonella_ticks_remaining` in the PDC (capped at
   `stack-durations-seconds.size()`). Stacks then drive the effects, decay and cure.

@@ -113,29 +113,40 @@ class WaterQualityStoreTest {
     void placedWaterRoundTrips() {
         BlockKey a = new BlockKey("world", 10, 64, -3);
         BlockKey b = new BlockKey("nether", 0, 5, 0);
-        store.applyPlaced(new PlacedWaterTracker.Changes(
+        store.applyBlocks(WaterQualityStore.BlockTable.PLACED_WATER, new BlockQualityTracker.Changes(
                 Map.of(a, WaterQuality.DIRTY, b, WaterQuality.FRESH), java.util.Set.of())).join();
 
-        assertEquals(Map.of(a, WaterQuality.DIRTY, b, WaterQuality.FRESH), store.loadPlaced());
+        assertEquals(Map.of(a, WaterQuality.DIRTY, b, WaterQuality.FRESH), store.loadBlocks(WaterQualityStore.BlockTable.PLACED_WATER));
     }
 
     @Test
     void placedWaterUpsertsOverwriteAndDeletesRemove() {
         BlockKey a = new BlockKey("world", 1, 1, 1);
         BlockKey b = new BlockKey("world", 2, 2, 2);
-        store.applyPlaced(new PlacedWaterTracker.Changes(
+        store.applyBlocks(WaterQualityStore.BlockTable.PLACED_WATER, new BlockQualityTracker.Changes(
                 Map.of(a, WaterQuality.DIRTY, b, WaterQuality.DIRTY), java.util.Set.of())).join();
-        store.applyPlaced(new PlacedWaterTracker.Changes(
+        store.applyBlocks(WaterQualityStore.BlockTable.PLACED_WATER, new BlockQualityTracker.Changes(
                 Map.of(a, WaterQuality.FRESH), java.util.Set.of(b))).join();
 
-        assertEquals(Map.of(a, WaterQuality.FRESH), store.loadPlaced());
+        assertEquals(Map.of(a, WaterQuality.FRESH), store.loadBlocks(WaterQualityStore.BlockTable.PLACED_WATER));
     }
 
     @Test
     void placedWaterAndChunkQualityAreSeparateTables() {
         store.upsert(new ChunkKey("world", 0, 0), WaterQuality.FRESH).join();
 
-        assertTrue(store.loadPlaced().isEmpty());
+        assertTrue(store.loadBlocks(WaterQualityStore.BlockTable.PLACED_WATER).isEmpty());
         assertEquals(1, store.loadAll().size());
+    }
+
+    @Test
+    void cauldronAndPlacedWaterTablesAreIndependent() {
+        BlockKey spot = new BlockKey("world", 4, 70, 4);
+        store.applyBlocks(WaterQualityStore.BlockTable.CAULDRON_WATER, new BlockQualityTracker.Changes(
+                Map.of(spot, WaterQuality.DIRTY), java.util.Set.of())).join();
+
+        assertEquals(Map.of(spot, WaterQuality.DIRTY),
+                store.loadBlocks(WaterQualityStore.BlockTable.CAULDRON_WATER));
+        assertTrue(store.loadBlocks(WaterQualityStore.BlockTable.PLACED_WATER).isEmpty());
     }
 }
