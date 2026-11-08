@@ -53,13 +53,7 @@ public final class CauldronWaterTracker implements Listener {
 
     /** Combine two water qualities: dirty beats fresh beats neutral. */
     static WaterQuality mix(WaterQuality existing, WaterQuality added) {
-        if (existing == WaterQuality.DIRTY || added == WaterQuality.DIRTY) {
-            return WaterQuality.DIRTY;
-        }
-        if (existing == WaterQuality.FRESH || added == WaterQuality.FRESH) {
-            return WaterQuality.FRESH;
-        }
-        return WaterQuality.NEUTRAL;
+        return WaterQuality.mix(existing, added);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

@@ -108,4 +108,34 @@ class WaterQualityStoreTest {
             migrated.close();
         }
     }
+
+    @Test
+    void placedWaterRoundTrips() {
+        BlockKey a = new BlockKey("world", 10, 64, -3);
+        BlockKey b = new BlockKey("nether", 0, 5, 0);
+        store.applyPlaced(new PlacedWaterTracker.Changes(
+                Map.of(a, WaterQuality.DIRTY, b, WaterQuality.FRESH), java.util.Set.of())).join();
+
+        assertEquals(Map.of(a, WaterQuality.DIRTY, b, WaterQuality.FRESH), store.loadPlaced());
+    }
+
+    @Test
+    void placedWaterUpsertsOverwriteAndDeletesRemove() {
+        BlockKey a = new BlockKey("world", 1, 1, 1);
+        BlockKey b = new BlockKey("world", 2, 2, 2);
+        store.applyPlaced(new PlacedWaterTracker.Changes(
+                Map.of(a, WaterQuality.DIRTY, b, WaterQuality.DIRTY), java.util.Set.of())).join();
+        store.applyPlaced(new PlacedWaterTracker.Changes(
+                Map.of(a, WaterQuality.FRESH), java.util.Set.of(b))).join();
+
+        assertEquals(Map.of(a, WaterQuality.FRESH), store.loadPlaced());
+    }
+
+    @Test
+    void placedWaterAndChunkQualityAreSeparateTables() {
+        store.upsert(new ChunkKey("world", 0, 0), WaterQuality.FRESH).join();
+
+        assertTrue(store.loadPlaced().isEmpty());
+        assertEquals(1, store.loadAll().size());
+    }
 }

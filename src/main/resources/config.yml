@@ -108,6 +108,18 @@ water:
   # Safety cap on /water setregion — the command is rejected if the rectangle
   # covers more chunk columns than this.
   max-region-chunks: 50000
+  # Remember the quality of water poured out of a tagged bucket (and of water
+  # that flows from it), so scooping it back up keeps that quality. Without
+  # this, dirty water could be turned fresh by pouring it out in a fresh chunk
+  # and scooping it up again. Stored in water_quality.db.
+  track-placed-water: true
+  # Most poured-water blocks remembered. Past this the oldest are dropped (and
+  # a warning is logged once), so very old poured water takes on its chunk's
+  # quality again.
+  tracked-block-limit: 100000
+  # How often (seconds) tracked blocks are checked for having dried up or been
+  # removed, and pending changes are saved. Applied on /thirst reload.
+  placed-water-prune-seconds: 30
 
 # ─── Thirst mechanics ─────────────────────────────────────────────────────────
 thirst:

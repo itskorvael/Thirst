@@ -22,6 +22,20 @@ public enum WaterQuality {
     DIRTY;
 
     /**
+     * Combines two qualities that end up in the same body of water: any dirty
+     * part makes the whole dirty, otherwise any fresh part makes it fresh.
+     */
+    public static WaterQuality mix(WaterQuality a, WaterQuality b) {
+        if (a == DIRTY || b == DIRTY) {
+            return DIRTY;
+        }
+        if (a == FRESH || b == FRESH) {
+            return FRESH;
+        }
+        return NEUTRAL;
+    }
+
+    /**
      * Parses a config / command token, case-insensitively. The legacy name
      * {@code "clean"} is still accepted as an alias for {@link #FRESH}.
      *

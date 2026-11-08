@@ -20,10 +20,11 @@ import org.bukkit.inventory.ItemStack;
  *   <li><b>fill</b> — a filled water bucket is tagged with the quality of what
  *       it scooped (chunk quality, DIRTY while raining, or a cauldron's tracked
  *       quality), the same way {@link DrinkingListener} tags bottles;</li>
- *   <li><b>empty into the world</b> — pouring a tagged bucket into a chunk whose
- *       quality is still {@link WaterQuality#NEUTRAL} sets that chunk to the
- *       bucket's quality (loose water blocks themselves aren't tracked, but the
- *       chunk adopts the poured quality);</li>
+ *   <li><b>empty into the world</b> — the poured block is tracked with the
+ *       bucket's quality (see {@link WaterQualityService#trackPoured}), so
+ *       scooping it back up can't launder it; and pouring into a chunk whose
+ *       quality is still {@link WaterQuality#NEUTRAL} also sets that chunk to the
+ *       bucket's quality;</li>
  *   <li><b>empty into a cauldron</b> — handled by {@link CauldronWaterTracker}.</li>
  * </ul>
  */
@@ -56,6 +57,7 @@ public final class BucketListener implements Listener {
         }
 
         event.setItemStack(containers.createBucket(quality));
+        water.untrack(event.getBlock()); // the scooped source is gone
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -70,11 +72,16 @@ public final class BucketListener implements Listener {
 
         Player player = event.getPlayer();
         WaterQuality poured = containers.qualityOf(player.getInventory().getItem(event.getHand()));
-        if (poured == null || poured == WaterQuality.NEUTRAL) {
+        if (poured == null) {
             return;
         }
 
         Block placed = event.getBlock();
+        water.trackPoured(placed, poured);
+        if (poured == WaterQuality.NEUTRAL) {
+            return;
+        }
+
         ChunkKey chunk = ChunkKey.fromBlock(placed.getWorld(), placed.getX(), placed.getZ());
         if (water.qualityAt(chunk) == WaterQuality.NEUTRAL) {
             water.setChunk(chunk, poured);

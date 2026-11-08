@@ -6,6 +6,7 @@ import io.github.itskorvael.thirst.config.ThirstConfig;
 import io.github.itskorvael.thirst.drinking.BucketListener;
 import io.github.itskorvael.thirst.drinking.CauldronWaterTracker;
 import io.github.itskorvael.thirst.drinking.DrinkingListener;
+import io.github.itskorvael.thirst.drinking.PlacedWaterListener;
 import io.github.itskorvael.thirst.drinking.WaterContainers;
 import io.github.itskorvael.thirst.hud.ThirstHudTask;
 import io.github.itskorvael.thirst.integration.ActionBarSegment;
@@ -24,6 +25,7 @@ import io.github.itskorvael.thirst.water.WaterQualityStore;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -53,6 +55,7 @@ public final class ThirstPlugin extends JavaPlugin {
     private @Nullable WaterQualityStore waterStore;
     private @Nullable WaterQualityService waterQuality;
     private @Nullable SalmonellaService salmonellaService;
+    private @Nullable BukkitTask placedWaterTask;
 
     /** Tracks the last-seen PlaceholderAPI availability so transitions are logged once. */
     private boolean placeholderApiActive;
@@ -68,9 +71,10 @@ public final class ThirstPlugin extends JavaPlugin {
         File databaseFile = new File(getDataFolder(), "water_quality.db");
         this.waterStore = new WaterQualityStore("jdbc:sqlite:" + databaseFile.getAbsolutePath(), getLogger());
         this.waterStore.initialize();
-        this.waterQuality = new WaterQualityService(waterStore, this::config);
+        this.waterQuality = new WaterQualityService(waterStore, this::config, getLogger()::warning);
         this.waterQuality.load();
-        getLogger().info(() -> "Loaded water quality for " + waterQuality.cachedChunkCount() + " chunk(s).");
+        getLogger().info(() -> "Loaded water quality for " + waterQuality.cachedChunkCount()
+                + " chunk(s) and " + waterQuality.trackedWaterCount() + " poured-water block(s).");
 
         ThirstKeys keys = new ThirstKeys(this);
         this.thirstManager = new ThirstManager(keys, this::config);
@@ -103,6 +107,9 @@ public final class ThirstPlugin extends JavaPlugin {
                 this::config), this);
         getServer().getPluginManager().registerEvents(new BucketListener(
                 waterContainers, waterQuality, cauldronWaterTracker), this);
+        getServer().getPluginManager().registerEvents(new PlacedWaterListener(
+                waterContainers, waterQuality), this);
+        schedulePlacedWaterMaintenance();
 
         this.tickTask = new ThirstTickTask(this, thirstManager, this::config, salmonellaService::tick);
         this.tickTask.start();
@@ -141,6 +148,13 @@ public final class ThirstPlugin extends JavaPlugin {
                 speedModifier.clear(player);
             }
             speedModifier = null;
+        }
+        if (placedWaterTask != null) {
+            placedWaterTask.cancel();
+            placedWaterTask = null;
+        }
+        if (waterQuality != null) {
+            waterQuality.flushPlaced();
         }
         if (waterStore != null) {
             waterStore.close();
@@ -262,6 +276,23 @@ public final class ThirstPlugin extends JavaPlugin {
             hudTask.setExternalSegment(refreshExternalSegment());
             hudTask.restart();
         }
+        if (waterQuality != null) {
+            schedulePlacedWaterMaintenance();
+        }
+    }
+
+    /** (Re-)starts the periodic placed-water upkeep at the configured interval. */
+    private void schedulePlacedWaterMaintenance() {
+        WaterQualityService service = this.waterQuality;
+        if (service == null) {
+            return;
+        }
+        if (placedWaterTask != null) {
+            placedWaterTask.cancel();
+        }
+        long periodTicks = config.water().placedWaterPruneSeconds() * 20L;
+        this.placedWaterTask = getServer().getScheduler()
+                .runTaskTimer(this, service::maintainPlaced, periodTicks, periodTicks);
     }
 
     /**

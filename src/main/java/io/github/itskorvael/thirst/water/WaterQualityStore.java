@@ -39,6 +39,28 @@ public final class WaterQualityStore {
             )
             """;
 
+    private static final String CREATE_PLACED_TABLE = """
+            CREATE TABLE IF NOT EXISTS placed_water (
+                world_name TEXT    NOT NULL,
+                x          INTEGER NOT NULL,
+                y          INTEGER NOT NULL,
+                z          INTEGER NOT NULL,
+                quality    TEXT    NOT NULL CHECK (quality IN ('FRESH', 'NEUTRAL', 'DIRTY')),
+                PRIMARY KEY (world_name, x, y, z)
+            )
+            """;
+
+    private static final String UPSERT_PLACED = """
+            INSERT INTO placed_water (world_name, x, y, z, quality)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (world_name, x, y, z) DO UPDATE SET quality = excluded.quality
+            """;
+
+    private static final String DELETE_PLACED =
+            "DELETE FROM placed_water WHERE world_name = ? AND x = ? AND y = ? AND z = ?";
+
+    private static final String SELECT_PLACED = "SELECT world_name, x, y, z, quality FROM placed_water";
+
     private static final String UPSERT = """
             INSERT INTO chunk_water_quality (world_name, chunk_x, chunk_z, quality)
             VALUES (?, ?, ?, ?)
@@ -77,6 +99,7 @@ public final class WaterQualityStore {
             Connection conn = dataSource.getConnection();
             try (Statement statement = conn.createStatement()) {
                 statement.execute(CREATE_TABLE);
+                statement.execute(CREATE_PLACED_TABLE);
             }
             migrateSchema(conn);
             this.connection = conn;
@@ -165,6 +188,62 @@ public final class WaterQualityStore {
                     ps.addBatch();
                 }
                 ps.executeBatch();
+                conn.commit();
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(autoCommit);
+            }
+        });
+    }
+
+    /** Reads every tracked placed-water block. Blocks; call once on enable. */
+    public Map<BlockKey, WaterQuality> loadPlaced() {
+        return supply(() -> {
+            Map<BlockKey, WaterQuality> out = new HashMap<>();
+            try (Statement statement = requireConnection().createStatement();
+                 ResultSet rs = statement.executeQuery(SELECT_PLACED)) {
+                while (rs.next()) {
+                    WaterQuality quality = WaterQuality.parse(rs.getString(5));
+                    if (quality != null) {
+                        out.put(new BlockKey(rs.getString(1), rs.getInt(2), rs.getInt(3), rs.getInt(4)), quality);
+                    }
+                }
+            }
+            return out;
+        }).join();
+    }
+
+    /** Applies a batch of placed-water deletes then inserts in one transaction. Fire-and-forget. */
+    public CompletableFuture<Void> applyPlaced(PlacedWaterTracker.Changes changes) {
+        return run(() -> {
+            Connection conn = requireConnection();
+            boolean autoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = conn.prepareStatement(DELETE_PLACED)) {
+                    for (BlockKey key : changes.deletes()) {
+                        ps.setString(1, key.worldName());
+                        ps.setInt(2, key.x());
+                        ps.setInt(3, key.y());
+                        ps.setInt(4, key.z());
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                }
+                try (PreparedStatement ps = conn.prepareStatement(UPSERT_PLACED)) {
+                    for (Map.Entry<BlockKey, WaterQuality> entry : changes.upserts().entrySet()) {
+                        BlockKey key = entry.getKey();
+                        ps.setString(1, key.worldName());
+                        ps.setInt(2, key.x());
+                        ps.setInt(3, key.y());
+                        ps.setInt(4, key.z());
+                        ps.setString(5, entry.getValue().name());
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                }
                 conn.commit();
             } catch (SQLException ex) {
                 conn.rollback();

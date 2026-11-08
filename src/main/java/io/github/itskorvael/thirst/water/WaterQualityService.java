@@ -11,6 +11,7 @@ import org.bukkit.block.Block;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -31,6 +32,10 @@ import java.util.function.Supplier;
  * </ol>
  * Detection is read-only — it never persists, so a painted chunk is never
  * overwritten.
+ *
+ * <p>Water poured from a tagged bucket is tracked block by block
+ * ({@link PlacedWaterTracker}); {@link #qualityForSource} prefers that over the
+ * chunk's quality, so poured water keeps the quality it was poured with.
  */
 public final class WaterQualityService {
 
@@ -41,14 +46,26 @@ public final class WaterQualityService {
     /** {@code true}/{@code false} once a chunk has been scanned for surface water this session. */
     private final Map<ChunkKey, Boolean> waterPresence = new ConcurrentHashMap<>();
 
-    public WaterQualityService(WaterQualityStore store, Supplier<ThirstConfig> config) {
+    /** Poured-water blocks examined per maintenance pass. */
+    private static final int PRUNE_BUDGET = 5_000;
+
+    private final PlacedWaterTracker placed;
+
+    public WaterQualityService(WaterQualityStore store, Supplier<ThirstConfig> config, Consumer<String> warn) {
         this.store = store;
         this.config = config;
+        this.placed = new PlacedWaterTracker(() -> config.get().water().trackedBlockLimit(), warn);
     }
 
-    /** Fills the cache from the database. Blocks; call once on enable. */
+    /** Fills the caches from the database. Blocks; call once on enable. */
     public void load() {
         cache.putAll(store.loadAll());
+        placed.load(store.loadPlaced());
+    }
+
+    /** Number of poured-water blocks currently tracked. */
+    public int trackedWaterCount() {
+        return placed.size();
     }
 
     public int cachedChunkCount() {
@@ -95,7 +112,65 @@ public final class WaterQualityService {
         if (config.get().drinking().dirtyWhileRaining() && block.getWorld().hasStorm()) {
             return WaterQuality.DIRTY;
         }
+        if (block.getType() == Material.WATER && config.get().water().trackPlacedWater()) {
+            WaterQuality tracked = placed.qualityOf(BlockKey.of(block));
+            if (tracked != null) {
+                return tracked;
+            }
+        }
         return qualityAt(key);
+    }
+
+    // ── Poured-water tracking ───────────────────────────────────────────────
+
+    /** Remember that {@code block} now holds water poured with {@code quality}. */
+    public void trackPoured(Block block, WaterQuality quality) {
+        if (config.get().water().trackPlacedWater()) {
+            placed.record(BlockKey.of(block), quality);
+        }
+    }
+
+    /** Forget {@code block}, e.g. after its source was scooped up. */
+    public void untrack(Block block) {
+        if (!placed.isEmpty()) {
+            placed.remove(BlockKey.of(block));
+        }
+    }
+
+    /** Water flowing out of a tracked block carries its quality to where it flows. */
+    public void propagateFlow(Block from, Block to) {
+        if (placed.isEmpty() || !config.get().water().trackPlacedWater()) {
+            return;
+        }
+        WaterQuality quality = placed.qualityOf(BlockKey.of(from));
+        if (quality != null && from.getType() == Material.WATER) {
+            placed.merge(BlockKey.of(to), quality);
+        }
+    }
+
+    /**
+     * Periodic upkeep: drops tracked blocks that are no longer water (in loaded
+     * chunks) and writes pending changes to the database. Main thread.
+     */
+    public void maintainPlaced() {
+        placed.prune(PRUNE_BUDGET, WaterQualityService::stillWaterOrUnknown);
+        flushPlaced();
+    }
+
+    /** Writes pending placed-water changes to the database (asynchronously). */
+    public void flushPlaced() {
+        PlacedWaterTracker.Changes changes = placed.drainChanges();
+        if (!changes.isEmpty()) {
+            store.applyPlaced(changes);
+        }
+    }
+
+    private static boolean stillWaterOrUnknown(BlockKey key) {
+        World world = Bukkit.getWorld(key.worldName());
+        if (world == null || !world.isChunkLoaded(key.x() >> 4, key.z() >> 4)) {
+            return true; // can't tell right now — keep it
+        }
+        return world.getBlockAt(key.x(), key.y(), key.z()).getType() == Material.WATER;
     }
 
     /** Whether an admin (or a poured bucket) has explicitly set this chunk. */

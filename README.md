@@ -136,6 +136,19 @@ built-in default instead of breaking gameplay.
 
 ### Design notes: water quality
 
+- **Poured water is tracked.** Pouring a tagged bucket records that block's
+  quality (`placed_water` table, same database), water that flows out of it
+  inherits the quality (dirty beats fresh beats neutral), and a dispenser
+  emptying a tagged bucket is tracked the same way. Scooping or bottling a
+  tracked block uses its recorded quality instead of the chunk's, so dirty water
+  can't be turned fresh by pouring it out in a fresh chunk and scooping it up
+  again. Entries are dropped when the source is scooped or the block is found to
+  no longer be water (checked every `water.placed-water-prune-seconds`, a bounded
+  number of blocks per pass), and the oldest are evicted past
+  `water.tracked-block-limit`. Turn it off with `water.track-placed-water`.
+  Rain still makes every source dirty regardless. Limits: plain vanilla buckets
+  (not tagged by Thirst) aren't tracked, and a block's tag is lost if the limit
+  evicts it.
 - **Storage:** SQLite (`water_quality.db` in the plugin folder), table
   `chunk_water_quality (world_name, chunk_x, chunk_z, quality)` with a
   `CHECK (quality IN ('FRESH','NEUTRAL','DIRTY'))`. An older DB whose stored

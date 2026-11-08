@@ -65,15 +65,21 @@ public record ThirstConfig(
 
     /**
      * The {@code water:} section — natural-water detection for unpainted chunks,
-     * and the {@code /water setregion} safety cap.
+     * the {@code /water setregion} safety cap, and placed-water tracking.
      *
-     * @param detectWater         scan an unpainted chunk for surface water on first query
-     * @param naturalWaterQuality quality of an unpainted chunk that has water (detection on)
+     * @param detectWater              scan an unpainted chunk for surface water on first query
+     * @param naturalWaterQuality      quality of an unpainted chunk that has water (detection on)
+     * @param trackPlacedWater         remember the quality of water poured from tagged buckets
+     * @param trackedBlockLimit        most poured-water blocks remembered; the oldest are dropped past this
+     * @param placedWaterPruneSeconds  how often tracked blocks are checked for having dried up
      */
     public record Water(
             boolean detectWater,
             WaterQuality naturalWaterQuality,
-            int maxRegionChunks
+            int maxRegionChunks,
+            boolean trackPlacedWater,
+            int trackedBlockLimit,
+            int placedWaterPruneSeconds
     ) {}
 
     /** Core thirst drain / damage numbers. */
@@ -235,7 +241,10 @@ public record ThirstConfig(
         Water water = new Water(
                 waterSec.getBoolean("detect-water", true),
                 waterSec.getEnum("natural-water-quality", WaterQuality.DIRTY, WaterQuality::parse),
-                waterSec.getInt("max-region-chunks", 50_000, 1, 10_000_000)
+                waterSec.getInt("max-region-chunks", 50_000, 1, 10_000_000),
+                waterSec.getBoolean("track-placed-water", true),
+                waterSec.getInt("tracked-block-limit", 100_000, 100, 5_000_000),
+                waterSec.getInt("placed-water-prune-seconds", 30, 5, 3600)
         );
 
         Reader thirstSec = root.section("thirst");
