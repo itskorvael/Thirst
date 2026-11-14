@@ -221,7 +221,7 @@ public final class DrinkingListener implements Listener {
 
     // ── Helpers ─────────────────────────────────────────────────────────────
 
-    private static void giveOrDrop(Player player, ItemStack item) {
+    static void giveOrDrop(Player player, ItemStack item) {
         player.getInventory().addItem(item).values().forEach(leftover ->
                 player.getWorld().dropItemNaturally(player.getLocation(), leftover));
     }
