@@ -406,4 +406,8 @@ string works here, not just RealisticSeasons'.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Thirst is free to use but not open source: you may run it on any server (including
+ones that take donations), but you may not redistribute, fork, modify-and-publish
+or sell it. See [LICENSE](LICENSE) for the full terms. Versions published before
+2026-11-25 (including v1.0.0) were released under the MIT License, and copies
+received under it keep that license.

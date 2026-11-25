@@ -1,21 +1,64 @@
-MIT License
+Thirst License
 
-Copyright (c) 2026 Antonio
+Copyright (c) 2026 Antonio (itskorvael). All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Thirst is free to use, but it is not open source. This license says what you
+may and may not do. Anything not expressly allowed below is reserved by the
+author.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. WHAT YOU MAY DO
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+   a. Run the unmodified Thirst plugin on any Minecraft server that you own or
+      administer, free of charge. This includes servers that accept donations
+      or sell ranks, cosmetics or other items; running the plugin on such a
+      server is fine.
+   b. Change the configuration files Thirst creates (such as config.yml) for
+      your own server.
+   c. Read the source code, and build it yourself, for your own use on your own
+      server.
+   d. Link to the Thirst project page and describe the plugin.
+   e. Fork the GitHub repository only to propose changes back to this
+      repository (a pull request), as GitHub's terms allow.
+
+2. WHAT YOU MAY NOT DO, WITHOUT THE AUTHOR'S WRITTEN PERMISSION
+
+   a. Copy, re-upload, mirror, or otherwise distribute Thirst (the plugin file,
+      the source code, or any part of either) anywhere, including inside
+      modpacks, server packs, installers, hosting-provider catalogs and
+      download sites. Point people to the official project page instead.
+   b. Publish modified versions, forks or derivative works of Thirst, or reuse
+      its code or assets in another project.
+   c. Sell, rent, sublicense or charge for the plugin itself. (Charging for
+      access to a server that runs Thirst is allowed, as stated in 1a.)
+   d. Remove or change copyright notices, or present Thirst or any part of it
+      as your own work.
+
+3. CONTRIBUTIONS
+
+   If you send the author a change (for example a pull request), you give the
+   author a perpetual, worldwide, irrevocable, royalty-free right to use,
+   change and distribute it as part of Thirst under any license the author
+   chooses.
+
+4. EARLIER VERSIONS
+
+   Versions of Thirst published before 2026-11-25 (including release v1.0.0)
+   were published under the MIT License. Copies you received under the MIT
+   License keep the MIT License. This license applies to everything published
+   from 2026-11-25 onward.
+
+5. TERMINATION
+
+   If you break these terms, your permission under this license ends
+   automatically. Permission can be restored only by the author in writing.
+
+6. NO WARRANTY
+
+   THIRST IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+   ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+   CONNECTION WITH THIRST OR ITS USE.
+
+Questions or permission requests: https://github.com/itskorvael/Thirst
