@@ -225,14 +225,14 @@ built-in default instead of breaking gameplay.
   every open source there resolves DIRTY regardless of chunk. Checked at fill
   time, so it reverts the moment the weather clears. Containers keep their
   fill-time tag.
-- **Loose water blocks are not tracked** — emptying a *Bucket of Fresh Water*
-  into the world just makes ordinary chunk-quality water. Per-block quality
-  propagation through flowing water is out of scope.
+- **Poured water is tracked** — emptying a tagged bucket into the world records
+  that block's quality, and flowing water inherits it (see *Design notes: water
+  quality*), so it can't be laundered by scooping it back up.
 - **Creative** players fill without consuming the container or emptying the cauldron.
 - New config: `drinking.{fresh,dirty}-{bottle,bucket}-name` (MiniMessage).
 - Mostly not unit-testable (ItemStack needs a running server). The pure bits —
-  the Salmonella stack maths and the cauldron `mix()` rule — are tested; the
-  rest needs an in-game check.
+  the Salmonella stack maths, the quality mix rule and the block tracker — have
+  unit tests; the listener behaviour has been checked in-game.
 
 ### Design notes: Pitcher Filter
 
@@ -247,11 +247,10 @@ built-in default instead of breaking gameplay.
   (default `NEUTRAL`, so Freshwater keeps its value). A bottle costs 1 use and a
   bucket `filter.bucket-cost` (default 3). `filter.cooldown-ticks` limits how often one
   player can filter. Creative mode doesn't use up the filter. It does not cure Salmonella.
-- **Tested** with unit tests (`FilterRulesTest`, `FilterConfigTest`) and on a scratch Paper
+- **Tested** with unit tests (`FilterRulesTest`, `FilterConfigTest`), on a scratch Paper
   26.1.2 server with fake players (recipe, uses, costs, cooldown, last use, creative,
-  `max-quality`, reload). Not tested with a real client: the right-click path (main-hand
-  click also cancelling the off-hand action), the crafting-table guard, and
-  `/thirst filter give`.
+  `max-quality`, reload), and in-game with a real client (the right-click path, the
+  crafting-table guard and `/thirst filter give`).
 - **Recharging** (`filter.recharge`): a filter, `fragments` Eggshell Fragments (2) and one charcoal in the crafting
   grid give the same filter back with `uses` more uses (6), never above `max-uses` (12); a filter already at the limit
   can't be recharged. The fragments are an item from the Archaeology plugin (found in its nests) and are recognised by
