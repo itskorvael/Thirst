@@ -16,7 +16,7 @@ author.
       your own server.
    c. Read the source code, and build it yourself, for your own use on your own
       server.
-   d. Link to the Thirst project page and describe the plugin.
+   d. Link to the Thirst GitHub repository and describe the plugin.
    e. Fork the GitHub repository only to propose changes back to this
       repository (a pull request), as GitHub's terms allow.
 
@@ -25,7 +25,7 @@ author.
    a. Copy, re-upload, mirror, or otherwise distribute Thirst (the plugin file,
       the source code, or any part of either) anywhere, including inside
       modpacks, server packs, installers, hosting-provider catalogs and
-      download sites. Point people to the official project page instead.
+      download sites. Point people to the official GitHub repository instead.
    b. Publish modified versions, forks or derivative works of Thirst, or reuse
       its code or assets in another project.
    c. Sell, rent, sublicense or charge for the plugin itself. (Charging for

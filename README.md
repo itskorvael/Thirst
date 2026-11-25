@@ -5,18 +5,34 @@ indicator above the hotbar, exertion-based drain with starvation damage at zero,
 bottle-based drinking, per-chunk water quality (FRESH / NEUTRAL / DIRTY), and a
 stacking dirty-water illness (Salmonella).
 
+## Download
+
+Get the jar from the [Releases page](https://github.com/itskorvael/Thirst/releases/latest)
+and pick the one that matches your server:
+
+| Your server | Jar | Java |
+|---|---|---|
+| Paper 26.1.2 | `Thirst-<version>.jar` | 25 |
+| Paper 26.2 | `Thirst-<version>-paper-26.2.jar` | 25 |
+| Paper 26.3 | `Thirst-<version>-paper-26.3.jar` | 25 |
+| Paper 1.21.4 to 1.21.11 | `Thirst-<version>-paper-1.21.4-1.21.11.jar` | 21 |
+
+Put it in your server's `plugins` folder and restart. Thirst is Paper-only (not
+Spigot or Bukkit) and is distributed only from this repository. Support:
+[Discord](https://discord.gg/FJGjZC3JeV) or the
+[issue tracker](https://github.com/itskorvael/Thirst/issues).
+
 ## Requirements
 
 | | |
 |---|---|
-| Server | Paper **26.1.2** (`api-version: '26.1'`) |
-| Java | **25** (Minecraft 26.1+ requires Java 25 — Java 21 will not run it) |
+| Server | Paper 26.1.2, 26.2, 26.3, or 1.21.4 to 1.21.11 (one jar per line, see above) |
+| Java | **25** for the 26.x builds, **21** for the 1.21.x build |
 | Build | Gradle wrapper (9.7.1), bundled |
 | Optional | PlaceholderAPI — only for `hud.external-segment` |
 
-> The original spec targeted "Paper 1.21.x / Java 21". Mojang switched to
-> year-based versioning in 2026; the `26.1` drop the build pins is the successor
-> to the 1.21 line and mandates Java 25. See `build.gradle.kts`.
+> Mojang switched to year-based versioning in 2026. The `26.x` releases are the
+> successors to the 1.21 line and require Java 25; the 1.21.x build runs on Java 21.
 
 ## Building
 
@@ -24,9 +40,17 @@ stacking dirty-water illness (Salmonella).
 ./gradlew build
 ```
 
-The plugin jar is written to `build/libs/Thirst-<version>.jar`. You need a JDK 25
-available for the Gradle toolchain (Gradle will download one if it can, or point
-it at a local install via `org.gradle.java.installations.paths`).
+The plugin jar is written to `build/libs/Thirst-<version>.jar` (Paper 26.1.2,
+Java 25). To build for another Paper line, pass the API and Java version:
+
+```bash
+./gradlew build -PpaperApi=26.3.build.236-stable -PapiVersion=26.3
+./gradlew build -PpaperApi=1.21.4-R0.1-SNAPSHOT -PapiVersion=1.21 -PjavaVersion=21
+```
+
+You need a JDK for the Gradle toolchain (Gradle will download one if it can, or
+point it at a local install via `org.gradle.java.installations.paths`). Building
+is for your own use only; see the license.
 
 The SQLite JDBC driver is **not** shaded — `ThirstPluginLoader` fetches it into
 Paper's shared library cache at load time.
