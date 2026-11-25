@@ -28,6 +28,7 @@ public record ThirstConfig(
         Water water,
         Thirst thirst,
         Drinking drinking,
+        Filter filter,
         Salmonella salmonella
 ) {
 
@@ -160,6 +161,61 @@ public record ThirstConfig(
         }
     }
 
+    /**
+     * The crafted Pitcher Filter: a limited-use item that lifts a water bottle or
+     * bucket one quality step (DIRTY to NEUTRAL, and NEUTRAL to FRESH only when
+     * {@code maxQuality} allows it).
+     *
+     * @param enabled      whether the recipe and the item's use are active
+     * @param uses         uses a freshly crafted filter has; a bottle costs 1
+     * @param bucketCost   uses one bucket costs
+     * @param cooldownTicks minimum ticks between two filterings by the same player
+     * @param maxQuality   the best quality a filter can produce
+     * @param name         item name (MiniMessage)
+     * @param loreUses     lore line showing the remaining uses, {@code {uses}} is replaced
+     * @param loreHint     lore line explaining how to use it
+     * @param recipe       shapeless crafting ingredients, as material names (1 to 9)
+     */
+    public record Filter(
+            boolean enabled,
+            int uses,
+            int bucketCost,
+            int cooldownTicks,
+            WaterQuality maxQuality,
+            String name,
+            String loreUses,
+            String loreHint,
+            List<String> recipe,
+            Recharge recharge
+    ) {
+        public Filter {
+            recipe = List.copyOf(recipe);
+        }
+    }
+
+    /**
+     * Recharging a Pitcher Filter in the crafting grid: the filter, {@code fragments} marked fragments (see
+     * {@code key}) and one charcoal give the same filter back with {@code addUses} more uses, up to {@code maxUses}.
+     * The fragments come from another plugin (Archaeology's Eggshell Fragment), so they are recognised by a key in the
+     * item's persistent data on top of its material.
+     *
+     * @param enabled   whether the recharge recipe exists
+     * @param item      material of the fragment (must match the other plugin's item)
+     * @param key       persistent-data key (namespace:key) that marks a real fragment
+     * @param fragments fragments used per recharge (1 to 6)
+     * @param addUses   uses added per recharge
+     * @param maxUses   a filter can't be recharged past this many uses
+     */
+    public record Recharge(
+            boolean enabled,
+            String item,
+            String key,
+            int fragments,
+            int addUses,
+            int maxUses
+    ) {
+    }
+
     /** Salmonella decay, per-stack effect durations, severe-stack damage and cure. */
     public record Salmonella(
             int decayIntervalSeconds,
@@ -197,6 +253,9 @@ public record ThirstConfig(
     // ── Defaults ────────────────────────────────────────────────────────────
 
     private static final List<Integer> DEFAULT_STACK_DURATIONS = List.of(30, 45, 60, 90, 120);
+    /** Default filter recipe: the layers of a real filter, plus the pitcher pod. */
+    public static final List<String> DEFAULT_FILTER_RECIPE = List.of("PITCHER_POD", "GRAVEL", "SAND", "CHARCOAL");
+    private static final int MAX_FILTER_INGREDIENTS = 9;
     private static final int MAX_SALMONELLA_STACKS = 5;
 
     /**
@@ -292,6 +351,28 @@ public record ThirstConfig(
                 drinkSec.getNonBlankString("dirty-bucket-name", "<color:#8a7f4a>Bucket of Dirty Water")
         );
 
+        Reader filterSec = root.section("filter");
+        Reader rechargeSec = filterSec.section("recharge");
+        Filter filter = new Filter(
+                filterSec.getBoolean("enabled", true),
+                filterSec.getInt("uses", 6, 1, 64),
+                filterSec.getInt("bucket-cost", 3, 1, 64),
+                filterSec.getInt("cooldown-ticks", 30, 0, 72_000),
+                filterSec.getEnum("max-quality", WaterQuality.NEUTRAL, WaterQuality::parse),
+                filterSec.getNonBlankString("name", "<green>Pitcher Filter"),
+                filterSec.getNonBlankString("lore-uses", "<gray>Uses left: <white>{uses}"),
+                filterSec.getString("lore-hint", "<dark_gray>Main hand: filter. Off hand: water. Right-click."),
+                filterSec.getStringList("recipe", DEFAULT_FILTER_RECIPE, 1, MAX_FILTER_INGREDIENTS),
+                new Recharge(
+                        rechargeSec.getBoolean("enabled", true),
+                        rechargeSec.getNonBlankString("item", "PRISMARINE_SHARD"),
+                        rechargeSec.getNonBlankString("key", "archaeology:eggshell_fragment"),
+                        rechargeSec.getInt("fragments", 2, 1, 6),
+                        rechargeSec.getInt("uses", 6, 1, 64),
+                        rechargeSec.getInt("max-uses", 12, 1, 256)
+                )
+        );
+
         Reader salSec = root.section("salmonella");
         Reader salDamageSec = salSec.section("damage");
         Salmonella salmonella = new Salmonella(
@@ -310,7 +391,7 @@ public record ThirstConfig(
 
         return new ThirstConfig(
                 configVersion, hudMode, overwrite, packUrl, hud,
-                defaultQuality, water, thirst, drinking, salmonella
+                defaultQuality, water, thirst, drinking, filter, salmonella
         );
     }
 
@@ -417,6 +498,26 @@ public record ThirstConfig(
                 return def;
             }
             return parsed;
+        }
+
+        List<String> getStringList(String path, List<String> def, int minSize, int maxSize) {
+            if (section == null || !section.isSet(path)) {
+                return def;
+            }
+            if (!section.isList(path)) {
+                warn.accept("Config: '" + full(path) + "' must be a list; using " + def + ".");
+                return def;
+            }
+            List<String> raw = section.getStringList(path);
+            if (raw.size() < minSize) {
+                warn.accept("Config: '" + full(path) + "' needs at least " + minSize + " entries; using " + def + ".");
+                return def;
+            }
+            if (raw.size() > maxSize) {
+                warn.accept("Config: '" + full(path) + "' has more than " + maxSize + " entries; ignoring the extras.");
+                return List.copyOf(raw.subList(0, maxSize));
+            }
+            return List.copyOf(raw);
         }
 
         List<Integer> getStackDurations(String path, List<Integer> def) {

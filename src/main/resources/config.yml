@@ -201,6 +201,39 @@ drinking:
   neutral-bucket-name: "<gray>Bucket of Water"
   dirty-bucket-name: "<color:#8a7f4a>Bucket of Dirty Water"
 
+# ─── Pitcher Filter ───────────────────────────────────────────────────────────
+# A crafted, limited-use item. Hold it in your MAIN hand with a Bottle or Bucket
+# of Water in your OFF hand and right-click: the water goes up one quality step
+# (Dirty -> Neutral, and Neutral -> Freshwater only if max-quality allows it).
+# It can't cure Salmonella, and it can't plant (it is a pitcher pod underneath).
+# Admins can hand one out with /thirst filter give <player> [uses].
+filter:
+  enabled: true
+  # Uses a newly crafted filter has. A bottle costs 1 use, a bucket bucket-cost.
+  uses: 6
+  bucket-cost: 3
+  # Minimum ticks between two filterings by the same player.
+  cooldown-ticks: 30
+  # The best quality a filter can produce: NEUTRAL (default) or FRESH.
+  max-quality: NEUTRAL
+  name: "<green>Pitcher Filter"
+  # {uses} is replaced by the uses left.
+  lore-uses: "<gray>Uses left: <white>{uses}"
+  lore-hint: "<dark_gray>Main hand: filter. Off hand: water. Right-click."
+  # Shapeless crafting recipe, 1-9 item names. Changing it needs /thirst reload.
+  recipe: [PITCHER_POD, GRAVEL, SAND, CHARCOAL]
+  # Recharging: put a filter, `fragments` Eggshell Fragments and one charcoal in the crafting grid to get the same filter
+  # with `uses` more uses, up to `max-uses`. The fragments come from the Archaeology plugin (found in nests). They are
+  # recognised by `key`, a marker in the item's data, on top of `item` (the same item as nests.fragments.item in the
+  # Archaeology config). A plain item of that kind does not work. Changing this needs /thirst reload.
+  recharge:
+    enabled: true
+    item: PRISMARINE_SHARD
+    key: "archaeology:eggshell_fragment"
+    fragments: 2
+    uses: 6
+    max-uses: 12
+
 # ─── Salmonella (dirty-water illness) ─────────────────────────────────────────
 # A stacking illness from drinking DIRTY water (chance = drinking.salmonella-chance).
 # Effects escalate by stack (code-defined, following the spec table). Only the

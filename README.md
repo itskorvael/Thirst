@@ -44,6 +44,9 @@ Paper's shared library cache at load time.
   the chunk it came from. Rain makes water dirty.
 - **Per-chunk water quality** stored in SQLite and painted with `/water`.
   Unpainted chunks are auto-detected (water → `natural-water-quality`).
+- **Pitcher Filter**: a crafted, limited-use item that lifts a bottle or bucket
+  of water one quality step (Dirty to Neutral; Neutral to Fresh only if
+  `filter.max-quality` is `FRESH`). See *Design notes: Pitcher Filter*.
 - **Salmonella**: drinking dirty water can add a stack (up to 5). Each stack adds
   escalating potion effects, decays over time, and can be cured with milk (a
   chance, not a guarantee). Severe stacks deal periodic damage.
@@ -61,6 +64,7 @@ Paper's shared library cache at load time.
 | `/thirst salmonella set <player> <stacks>` | `thirst.admin.thirst` | op |
 | `/thirst salmonella cure <player>` | `thirst.admin.thirst` | op |
 | `/thirst reload` | `thirst.admin.thirst` | op |
+| `/thirst filter give <player> [uses]` | `thirst.admin.thirst` | op |
 | `/water get` | `thirst.admin.water` | op |
 | `/water setchunk <fresh\|neutral\|dirty>` | `thirst.admin.water` | op |
 | `/water setregion ...` | `thirst.admin.water` | op |
@@ -229,6 +233,36 @@ built-in default instead of breaking gameplay.
 - Mostly not unit-testable (ItemStack needs a running server). The pure bits —
   the Salmonella stack maths and the cauldron `mix()` rule — are tested; the
   rest needs an in-game check.
+
+### Design notes: Pitcher Filter
+
+- **The item** is a pitcher pod with a use counter in its PDC (`pitcher_filter_uses`),
+  an enchantment glint and a name and lore from `filter.*`. It never stacks, and
+  placing it is cancelled so it can't be planted. A pod has no other use in vanilla.
+- **Crafting:** a shapeless recipe, `filter.recipe` (default pitcher pod, gravel, sand,
+  charcoal), registered on enable and re-registered on `/thirst reload`. A worn filter
+  can't be used as the pod of a new one (`PrepareItemCraftEvent`), or its uses would reset.
+- **Using it:** filter in the main hand, a Thirst bottle or bucket in the off hand,
+  right-click. The water goes up one quality step, never above `filter.max-quality`
+  (default `NEUTRAL`, so Freshwater keeps its value). A bottle costs 1 use and a
+  bucket `filter.bucket-cost` (default 3). `filter.cooldown-ticks` limits how often one
+  player can filter. Creative mode doesn't use up the filter. It does not cure Salmonella.
+- **Tested** with unit tests (`FilterRulesTest`, `FilterConfigTest`) and on a scratch Paper
+  26.1.2 server with fake players (recipe, uses, costs, cooldown, last use, creative,
+  `max-quality`, reload). Not tested with a real client: the right-click path (main-hand
+  click also cancelling the off-hand action), the crafting-table guard, and
+  `/thirst filter give`.
+- **Recharging** (`filter.recharge`): a filter, `fragments` Eggshell Fragments (2) and one charcoal in the crafting
+  grid give the same filter back with `uses` more uses (6), never above `max-uses` (12); a filter already at the limit
+  can't be recharged. The fragments are an item from the Archaeology plugin (found in its nests) and are recognised by
+  a marker key in their data (`key`, default `archaeology:eggshell_fragment`) on top of their material (`item`,
+  default `PRISMARINE_SHARD`), so a plain item of that kind does nothing. Both settings must match the Archaeology
+  config (`nests.fragments.item`). The recipe is matched by material only, so `PitcherFilterListener.onPrepareRecharge`
+  decides the result: exactly one real filter, the right number of marked fragments, nothing else but charcoal.
+  Without the Archaeology plugin nobody can get fragments, so filters just wear out (admins have no give command in
+  Thirst for them; use `/nests fragment` in Archaeology). The point is demand: fragments cannot be farmed or made, so
+  clean water keeps needing trips to nests.
+- **Cauldrons** can't be filtered yet; fill a bottle or bucket first.
 
 ### Design notes: Salmonella
 

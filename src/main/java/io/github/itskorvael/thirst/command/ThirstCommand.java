@@ -73,7 +73,29 @@ public final class ThirstCommand {
                         .requires(ThirstCommand::hasAdmin)
                         .executes(ctx -> reload(ctx, plugin)))
                 .then(salmonellaNode(manager, salmonella))
+                .then(Commands.literal("filter")
+                        .requires(ThirstCommand::hasAdmin)
+                        .then(Commands.literal("give")
+                                .then(Commands.argument("target", ArgumentTypes.player())
+                                        .executes(ctx -> giveFilter(ctx, plugin, 0))
+                                        .then(Commands.argument("uses", IntegerArgumentType.integer(1, 64))
+                                                .executes(ctx -> giveFilter(ctx, plugin,
+                                                        IntegerArgumentType.getInteger(ctx, "uses")))))))
                 .build();
+    }
+
+    // ── thirst filter give ─────────────────────────────────────────────────
+
+    /** {@code uses} of 0 means the configured number of uses for a fresh filter. */
+    private static int giveFilter(CommandContext<CommandSourceStack> ctx, ThirstPlugin plugin, int uses)
+            throws CommandSyntaxException {
+        Player target = resolvePlayer(ctx, "target");
+        int applied = uses > 0 ? uses : plugin.config().filter().uses();
+        target.getInventory().addItem(plugin.pitcherFilter().create(applied)).values().forEach(leftover ->
+                target.getWorld().dropItemNaturally(target.getLocation(), leftover));
+        ctx.getSource().getSender().sendMessage(Component.text(
+                "Gave " + target.getName() + " a Pitcher Filter with " + applied + " uses.", NamedTextColor.GREEN));
+        return Command.SINGLE_SUCCESS;
     }
 
     // ── thirst get / set / reload ──────────────────────────────────────────

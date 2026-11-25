@@ -6,6 +6,8 @@ import io.github.itskorvael.thirst.config.ThirstConfig;
 import io.github.itskorvael.thirst.drinking.BucketListener;
 import io.github.itskorvael.thirst.drinking.CauldronWaterTracker;
 import io.github.itskorvael.thirst.drinking.DrinkingListener;
+import io.github.itskorvael.thirst.drinking.PitcherFilter;
+import io.github.itskorvael.thirst.drinking.PitcherFilterListener;
 import io.github.itskorvael.thirst.drinking.PlacedWaterListener;
 import io.github.itskorvael.thirst.drinking.WaterContainers;
 import io.github.itskorvael.thirst.hud.ThirstHudTask;
@@ -56,6 +58,7 @@ public final class ThirstPlugin extends JavaPlugin {
     private @Nullable WaterQualityService waterQuality;
     private @Nullable SalmonellaService salmonellaService;
     private @Nullable BukkitTask placedWaterTask;
+    private @Nullable PitcherFilter pitcherFilter;
 
     /** Tracks the last-seen PlaceholderAPI availability so transitions are logged once. */
     private boolean placeholderApiActive;
@@ -112,6 +115,11 @@ public final class ThirstPlugin extends JavaPlugin {
                 waterContainers, waterQuality), this);
         schedulePlacedWaterMaintenance();
 
+        this.pitcherFilter = new PitcherFilter(this, this::config);
+        getServer().getPluginManager().registerEvents(
+                new PitcherFilterListener(pitcherFilter, waterContainers, this::config), this);
+        pitcherFilter.registerRecipe();
+
         this.tickTask = new ThirstTickTask(this, thirstManager, this::config, salmonellaService::tick);
         this.tickTask.start();
         this.hudTask.start();
@@ -153,6 +161,10 @@ public final class ThirstPlugin extends JavaPlugin {
         if (placedWaterTask != null) {
             placedWaterTask.cancel();
             placedWaterTask = null;
+        }
+        if (pitcherFilter != null) {
+            pitcherFilter.unregisterRecipe();
+            pitcherFilter = null;
         }
         if (waterQuality != null) {
             waterQuality.flushTracked();
@@ -280,6 +292,20 @@ public final class ThirstPlugin extends JavaPlugin {
         if (waterQuality != null) {
             schedulePlacedWaterMaintenance();
         }
+        if (pitcherFilter != null) {
+            pitcherFilter.registerRecipe();
+        }
+    }
+
+    /**
+     * The Pitcher Filter item and recipe. Never {@code null} while the plugin is enabled.
+     */
+    public PitcherFilter pitcherFilter() {
+        PitcherFilter filter = this.pitcherFilter;
+        if (filter == null) {
+            throw new IllegalStateException("PitcherFilter accessed before enable / after disable");
+        }
+        return filter;
     }
 
     /** (Re-)starts the periodic placed-water upkeep at the configured interval. */
