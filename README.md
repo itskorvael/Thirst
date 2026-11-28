@@ -97,4 +97,4 @@ You need a JDK for Gradle's toolchain. Gradle will download one if it can, or yo
 
 ## Licence
 
-All rights reserved. The source is public for reference only. See [LICENSE](LICENSE). Copies of earlier versions received under an earlier licence, including the MIT License used before 2026-11-25, keep that licence.
+All rights reserved. Thirst is free to use: you can download it and run it on your own server, including one that takes donations. You can't redistribute it, publish modified versions or sell it. See [LICENSE](LICENSE) for the full terms. Copies received under an earlier licence, including the MIT License used before 2026-11-25, keep that licence.
