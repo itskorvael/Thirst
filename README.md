@@ -1,14 +1,10 @@
 # Thirst
 
-A Paper plugin that adds a thirst mechanic alongside vanilla hunger: a HUD
-indicator above the hotbar, exertion-based drain with starvation damage at zero,
-bottle-based drinking, per-chunk water quality (FRESH / NEUTRAL / DIRTY), and a
-stacking dirty-water illness (Salmonella).
+A Paper plugin that adds thirst next to vanilla hunger. There's a meter that drains as you move around, a HUD above the hotbar, bottles of water that are fresh, neutral or dirty depending on the chunk they came from, and a stacking illness called Salmonella that you get from dirty water.
 
 ## Download
 
-Get the jar from the [Releases page](https://github.com/itskorvael/Thirst/releases/latest)
-and pick the one that matches your server:
+Get the jar from the [Releases page](https://github.com/itskorvael/Thirst/releases/latest) and pick the one that matches your server:
 
 | Your server | Jar | Java |
 |---|---|---|
@@ -17,364 +13,49 @@ and pick the one that matches your server:
 | Paper 26.3 | `Thirst-<version>-paper-26.3.jar` | 25 |
 | Paper 1.21.4 to 1.21.11 | `Thirst-<version>-paper-1.21.4-1.21.11.jar` | 21 |
 
-Put it in your server's `plugins` folder and restart. Thirst is Paper-only (not
-Spigot or Bukkit) and is distributed only from this repository. Support:
-[Discord](https://discord.gg/FJGjZC3JeV) or the
-[issue tracker](https://github.com/itskorvael/Thirst/issues).
+Put it in your server's `plugins` folder and restart. Thirst is Paper only (not Spigot or Bukkit) and Folia isn't supported. It's distributed only from this repository. For help, use [Discord](https://discord.gg/FJGjZC3JeV) or the [issue tracker](https://github.com/itskorvael/Thirst/issues).
 
-## Requirements
+Mojang switched to year-based versions in 2026. The 26.x releases follow the 1.21 line and need Java 25, and the 1.21.x build runs on Java 21. PlaceholderAPI is optional and only used for `hud.external-segment`.
 
-| | |
-|---|---|
-| Server | Paper 26.1.2, 26.2, 26.3, or 1.21.4 to 1.21.11 (one jar per line, see above) |
-| Java | **25** for the 26.x builds, **21** for the 1.21.x build |
-| Build | Gradle wrapper (9.7.1), bundled |
-| Optional | PlaceholderAPI — only for `hud.external-segment` |
+## How it plays
 
-> Mojang switched to year-based versioning in 2026. The `26.x` releases are the
-> successors to the 1.21 line and require Java 25; the 1.21.x build runs on Java 21.
+**Thirst.** The meter runs from 0 to 20, like hunger. It drains with exertion (sprinting, jumping, swimming, fighting, mining) and a little while you stand still. At zero you take starvation damage. Below a critical level sprinting gives no speed bonus. Creative and Spectator players are exempt, and dying refills thirst and clears any illness.
 
-## Building
+**The HUD.** An action-bar bar or percentage, blue and turning red when critical, neon green while you're sick. There's also a boss-bar mode. It can share the action bar with another plugin through PlaceholderAPI (see below).
 
-```bash
-./gradlew build
-```
+**Drinking.** Right-click any water block or a cauldron with an empty glass bottle to get a bottle of fresh, neutral or dirty water, tagged with the quality of the chunk it came from. A bucket is tagged the same way. Rain makes all open water dirty. Drinking uses the normal animation and gives the glass bottle back.
 
-The plugin jar is written to `build/libs/Thirst-<version>.jar` (Paper 26.1.2,
-Java 25). To build for another Paper line, pass the API and Java version:
+**Water quality.** Every chunk is fresh, neutral or dirty. Admins paint chunks with `/water`. A chunk nobody painted is checked once for surface water: if it has some, it's dirty by default (`natural-water-quality`), and if it's dry it's neutral. Neutral water restores a little thirst (`neutral-water-restore-amount`, 3) and never makes you sick. Poured water remembers what it was, and so do cauldrons, so you can't turn dirty water fresh by pouring it into a fresh chunk and scooping it up again. Rain and dripstone fill cauldrons with dirty water.
 
-```bash
-./gradlew build -PpaperApi=26.3.build.236-stable -PapiVersion=26.3
-./gradlew build -PpaperApi=1.21.4-R0.1-SNAPSHOT -PapiVersion=1.21 -PjavaVersion=21
-```
+**The Pitcher Filter.** A crafted item with a limited number of uses (pitcher pod, gravel, sand and charcoal by default). Hold it in your main hand and a Thirst bottle or bucket in the other, then right-click, and the water goes up one quality step. It never goes above `filter.max-quality` (neutral by default, so fresh water keeps its value). A bottle costs one use and a bucket costs `filter.bucket-cost` (3). A filter can be recharged with Eggshell Fragments from the Archaeology plugin (`filter.recharge`), which is what makes clean water need trips to nests. Without Archaeology nobody can get fragments, so filters just wear out. Cauldrons can't be filtered yet, so fill a bottle first. It doesn't cure Salmonella.
 
-You need a JDK for the Gradle toolchain (Gradle will download one if it can, or
-point it at a local install via `org.gradle.java.installations.paths`). Building
-is for your own use only; see the license.
+**Salmonella.** Dirty water has a chance (`salmonella-chance`, 0.65) to add a stack, up to 5. Stacks add effects: Slowness first, then Weakness, then Nausea (from stack 3 by default), and only stack 5 makes Weakness and Nausea stronger. Stacks wear off over time. Milk has a chance to remove one (`milk-cure-chance`, 0.3) and does nothing if you're healthy. From stack 4 you take periodic magic damage, which can only kill you at stack 5. Vomiting is cosmetic.
 
-The SQLite JDBC driver is **not** shaded — `ThirstPluginLoader` fetches it into
-Paper's shared library cache at load time.
-
-## Features
-
-- **Thirst meter** (0–20, mirrors hunger) that drains with exertion — sprinting,
-  jumping, swimming, fighting, mining — and at zero deals starvation damage.
-  At the critical threshold sprinting stops giving a speed bonus.
-- **HUD**: an action-bar bar or percent (blue → red when critical, neon green
-  while infected), with a boss-bar debug/fallback mode. Can share the action bar
-  with other plugins through PlaceholderAPI.
-- **Bottle-based drinking**: fill a glass bottle or bucket at any water block or
-  cauldron to get a *Fresh*, *Neutral* or *Dirty* item, tagged with the quality of
-  the chunk it came from. Rain makes water dirty.
-- **Per-chunk water quality** stored in SQLite and painted with `/water`.
-  Unpainted chunks are auto-detected (water → `natural-water-quality`).
-- **Pitcher Filter**: a crafted, limited-use item that lifts a bottle or bucket
-  of water one quality step (Dirty to Neutral; Neutral to Fresh only if
-  `filter.max-quality` is `FRESH`). See *Design notes: Pitcher Filter*.
-- **Salmonella**: drinking dirty water can add a stack (up to 5). Each stack adds
-  escalating potion effects, decays over time, and can be cured with milk (a
-  chance, not a guarantee). Severe stacks deal periodic damage.
-- **Everything is configurable.** Every gameplay number lives in `config.yml`;
-  invalid values log a warning and fall back to the default.
+Every number is in `config.yml`. A bad value logs a warning and falls back to the default, and `/thirst reload` prints those warnings to whoever ran it.
 
 ## Commands and permissions
 
 | Command | Permission | Default |
 |---|---|---|
-| `/thirst get` | `thirst.command.thirst` | everyone |
-| `/thirst salmonella get` | `thirst.command.thirst` | everyone |
+| `/thirst get`, `/thirst salmonella get` | `thirst.command.thirst` | everyone |
 | `/thirst get <player>` | `thirst.admin.thirst` | op |
 | `/thirst set <player> <level>` | `thirst.admin.thirst` | op |
 | `/thirst salmonella set <player> <stacks>` | `thirst.admin.thirst` | op |
 | `/thirst salmonella cure <player>` | `thirst.admin.thirst` | op |
-| `/thirst reload` | `thirst.admin.thirst` | op |
 | `/thirst filter give <player> [uses]` | `thirst.admin.thirst` | op |
+| `/thirst reload` | `thirst.admin.thirst` | op |
 | `/water get` | `thirst.admin.water` | op |
 | `/water setchunk <fresh\|neutral\|dirty>` | `thirst.admin.water` | op |
 | `/water setregion ...` | `thirst.admin.water` | op |
 
-`thirst.admin` grants both admin permissions. `/thirst reload` prints any
-config-validation warnings straight to whoever ran it.
+`thirst.admin` grants both admin permissions. `/water setchunk` paints the chunk you're standing in. `/water setregion` takes two block corners (what you read off F3) and paints that area in one go, up to `water.max-region-chunks` (50,000).
 
-## Roadmap
+## Sharing the action bar
 
-Not implemented: a water-quality wand with a chunk-outline preview, a rain
-trickle-drink, and a resource-pack HUD with droplet glyphs.
+`hud.external-segment` puts text from a PlaceholderAPI placeholder on the same action-bar line as the thirst bar, so two plugins don't fight over the slot. It needs PlaceholderAPI and is ignored without it. For example, with RealisticSeasons:
 
-## Configuration and design notes
-
-All gameplay numbers live in `config.yml` (copied to the data folder on first
-run). Nothing is hardcoded. Invalid values log a warning and fall back to the
-built-in default instead of breaking gameplay.
-
-### Design notes: thirst core
-
-- **Passive drain is folded into the exhaustion bucket.** Idle time adds
-  `exhaustion-threshold / base-drain-interval-seconds` per second, so "1 point
-  per N minutes idle" and the exertion multipliers share one code path.
-- **Tick cadence: 1 second** (20 ticks). Starvation timing is counted in whole
-  seconds from this loop.
-- **Exhaustion is flushed to the PDC once per second**, not on every move event,
-  to keep `PlayerMoveEvent` cheap. Level changes write through immediately.
-- **`thirst_exhaustion` is stored as a PDC `double`** (the spec said "float" —
-  double chosen for headroom; the size difference is 4 bytes/player).
-- **Exempt players:** Creative + Spectator (like vanilla hunger). Starvation
-  damage is additionally skipped on Peaceful difficulty. Difficulty-scaled
-  health floors are *not* mirrored — `starvation-minimum-health` is the single
-  knob.
-- **Respawn refills thirst to full** and clears exhaustion + illness, matching
-  vanilla hunger resetting on death.
-- **Sprinting made pointless at/below the critical threshold**
-  (`disable-sprint-when-critical`, default on), since a true "can't sprint"
-  isn't reachable from the server — the client owns that decision (it checks its
-  own food level > 6; cancelling `PlayerToggleSprintEvent` does nothing). Two
-  parts:
-  - *Speed:* `CriticalSpeedModifier` adds a transient negative `MOVEMENT_SPEED`
-    modifier while the player is both critical and sprinting, cancelling the
-    ~30% boost (`critical-sprint-speed-multiplier`, default 0.75 ≈ walking).
-    Removed the instant either condition stops — walking is never slowed.
-  - *Jump:* the sprint-jump lunge is a client-side velocity kick the server
-    can't dampen (`setVelocity` on a moving player doesn't stick — client
-    authority), so `ThirstSprintListener` cancels the jump outright *while
-    sprinting*. Release sprint and jumping is normal.
-- **Folia is not supported** (uses the Bukkit scheduler).
-
-### Design notes: HUD
-
-- **One shared HUD task**, not one task per player — it iterates online players
-  each interval. Joiners are picked up next tick; leavers cleaned in `onQuit`.
-  Same net effect as per-player tasks, less overhead.
-- **HUD hidden in Creative / Spectator**, matching vanilla hiding the hunger bar
-  there.
-- **`hud-mode` is a pluggable strategy** (`HudRenderer`): `ACTIONBAR_TEXT` and
-  `BOSSBAR` today; `ACTIONBAR_RESOURCEPACK` currently logs a one-time warning and
-  falls back to `ACTIONBAR_TEXT`. A resource-pack renderer can be added without
-  touching the task.
-- **Action-bar "yield" is cooperative, not automatic.** Paper exposes no way to
-  detect another plugin's outgoing action-bar packets, so
-  `actionbar-overwrite-others: false` cannot magically notice a third-party HUD.
-  Three ways to coexist, best first:
-  1. `hud.external-segment` — pull the other plugin's text in via PlaceholderAPI
-     and render both on one line (see below). One plugin owns the slot.
-  2. A plugin that depends on Thirst can call
-     `((ThirstPlugin) Bukkit.getPluginManager().getPlugin("Thirst")).hud()
-     .requestActionBarYield(player[, millis])` before its own send.
-  3. If Thirst is the only action-bar user (common), set
-     `actionbar-overwrite-others: true`.
-
-### Design notes: water quality
-
-- **Poured water is tracked.** Pouring a tagged bucket records that block's
-  quality (`placed_water` table, same database), water that flows out of it
-  inherits the quality (dirty beats fresh beats neutral), and a dispenser
-  emptying a tagged bucket is tracked the same way. Scooping or bottling a
-  tracked block uses its recorded quality instead of the chunk's, so dirty water
-  can't be turned fresh by pouring it out in a fresh chunk and scooping it up
-  again. Entries are dropped when the source is scooped or the block is found to
-  no longer be water (checked every `water.placed-water-prune-seconds`, a bounded
-  number of blocks per pass), and the oldest are evicted past
-  `water.tracked-block-limit`. Turn it off with `water.track-placed-water`.
-  Rain still makes every source dirty regardless. Limits: plain vanilla buckets
-  (not tagged by Thirst) aren't tracked, and a block's tag is lost if the limit
-  evicts it.
-- **Storage:** SQLite (`water_quality.db` in the plugin folder), table
-  `chunk_water_quality (world_name, chunk_x, chunk_z, quality)` with a
-  `CHECK (quality IN ('FRESH','NEUTRAL','DIRTY'))`. An older DB whose stored
-  `CREATE` statement predates `NEUTRAL` (or used `CLEAN`) is rebuilt on startup
-  (`WaterQualityStore#migrateSchema`, remapping `CLEAN -> FRESH`).
-- **Threading:** one dedicated daemon thread owns a single JDBC connection
-  (`SQLiteDataSource`, WAL, `synchronous=NORMAL`). Callers get
-  `CompletableFuture`s; the main thread never blocks on the DB *except* the
-  one-time `initialize()` + `loadAll()` at enable.
-- **Cache:** the whole table is read into a `ConcurrentHashMap<ChunkKey,
-  WaterQuality>` on enable (not lazy per-chunk, not per-`WorldLoadEvent` — a
-  single server's DB is small and this is simpler; a world added later still has
-  its rows because nothing filters by loaded worlds). Reads fall back to
-  `default-water-quality` (now **`NEUTRAL`**). Writes hit the cache immediately
-  and the DB async, so a drink right after `/water setchunk` sees the new value.
-- **`NEUTRAL`** is "no established quality" — the default for land with no
-  natural water. Pouring a bucket never changes a chunk's quality; only admins
-  paint chunks. Drinking neutral water restores
-  `neutral-water-restore-amount` (default 3) and never causes Salmonella.
-- **Natural-water detection** (`water.detect-water`, default on): an unpainted
-  chunk is scanned once — 256 `HeightMap.MOTION_BLOCKING` column checks — the
-  first time its quality is asked for. Has surface water → `natural-water-quality`
-  (default DIRTY); dry → `default-water-quality` (NEUTRAL). Result cached for the
-  session; a painted chunk is never scanned or overwritten (detection is
-  read-only). Limits: won't notice water *added* to a dry chunk until restart,
-  and misses water fully under solid overhangs / leaves. Admins can still paint
-  those.
-- **`/water setregion`** takes two **block**-coordinate corners (what admins
-  read off F3), converts to a chunk rectangle, and writes it in one transaction.
-  Guarded by `water.max-region-chunks` (default 50 000).
-- **`/water set <fresh|neutral|dirty> [radius]` from the original spec is
-  dropped** in favour of `setchunk` (per an earlier maintainer decision).
-- `ChunkKey` / `ChunkArea` conversions are pure and unit-tested; the store is
-  tested against an in-memory SQLite DB.
-- On Java 25, sqlite-jdbc loading its native library prints a one-line
-  `WARNING: ... native access ...` to the console on first DB use. Cosmetic —
-  it's the JDK's new native-access notice, not an error.
-
-### Design notes: drinking
-
-- **Bottle-only for *drinking*, no drink-from-block** — per the earlier
-  maintainer decision. Right-clicking **any water block** — natural or placed,
-  source or flowing — or a cauldron with an empty `GLASS_BOTTLE` cancels the
-  vanilla fill (which is source-only) and gives a tagged bottle.
-  `resolveFillTarget` tries `getTargetBlockExact(..., FluidCollisionMode.ALWAYS)`,
-  then a `getLineOfSight` walk (catches thin flowing-water shapes the block ray
-  passes through), then the eye block. Quality is the chunk's (or DIRTY while
-  raining, or the cauldron's tracked quality) — loose water blocks are not
-  individually tracked. A **bucket** (`PlayerBucketFillEvent`) is tagged the
-  same way — *Bucket of Freshwater / Water / Dirty Water* — but stays vanilla
-  source-only.
-- **The bottle is a real water potion** (`PotionType.WATER`) with a PDC quality
-  tag, a tint and a config name; drinking it uses the vanilla animation and
-  returns a glass bottle for free. `drinking.cooldown-ticks` is enforced
-  server-side (the interact that starts a drink is cancelled if you drank too
-  recently). *A client-side `USE_COOLDOWN` data component was tried and removed —
-  mixing the experimental `ItemStack#setData` API with `setItemMeta` was wiping
-  the item's custom data (the quality tag).*
-- **Cauldrons hold the quality of what's poured in**, not the chunk
-  (`CauldronWaterTracker`, saved in the `cauldron_water` table so it survives
-  restarts): a tagged
-  bucket / bottle carries its quality across; rain / dripstone (`NATURAL_FILL`,
-  gated by `rain-cauldron-always-dirty`) is dirty runoff. Mixing rule: any dirty
-  part → whole pot dirty. A cauldron that was never tracked (filled before the
-  plugin was installed) falls back to the source-quality of its own location.
-- **Salmonella:** dirty water rolls `salmonella-chance` and, on a hit, bumps the
-  stack count + `salmonella_ticks_remaining` in the PDC (capped at
-  `stack-durations-seconds.size()`). Stacks then drive the effects, decay and cure.
-- **`dirty-while-raining`** (default on) — while a world has active rain/storm,
-  every open source there resolves DIRTY regardless of chunk. Checked at fill
-  time, so it reverts the moment the weather clears. Containers keep their
-  fill-time tag.
-- **Poured water is tracked** — emptying a tagged bucket into the world records
-  that block's quality, and flowing water inherits it (see *Design notes: water
-  quality*), so it can't be laundered by scooping it back up.
-- **Creative** players fill without consuming the container or emptying the cauldron.
-- New config: `drinking.{fresh,dirty}-{bottle,bucket}-name` (MiniMessage).
-- Mostly not unit-testable (ItemStack needs a running server). The pure bits —
-  the Salmonella stack maths, the quality mix rule and the block tracker — have
-  unit tests; the listener behaviour has been checked in-game.
-
-### Design notes: Pitcher Filter
-
-- **The item** is a pitcher pod with a use counter in its PDC (`pitcher_filter_uses`),
-  an enchantment glint and a name and lore from `filter.*`. It never stacks, and
-  placing it is cancelled so it can't be planted. A pod has no other use in vanilla.
-- **Crafting:** a shapeless recipe, `filter.recipe` (default pitcher pod, gravel, sand,
-  charcoal), registered on enable and re-registered on `/thirst reload`. A worn filter
-  can't be used as the pod of a new one (`PrepareItemCraftEvent`), or its uses would reset.
-- **Using it:** filter in the main hand, a Thirst bottle or bucket in the off hand,
-  right-click. The water goes up one quality step, never above `filter.max-quality`
-  (default `NEUTRAL`, so Freshwater keeps its value). A bottle costs 1 use and a
-  bucket `filter.bucket-cost` (default 3). `filter.cooldown-ticks` limits how often one
-  player can filter. Creative mode doesn't use up the filter. It does not cure Salmonella.
-- **Tested** with unit tests (`FilterRulesTest`, `FilterConfigTest`), on a scratch Paper
-  26.1.2 server with fake players (recipe, uses, costs, cooldown, last use, creative,
-  `max-quality`, reload), and in-game with a real client (the right-click path, the
-  crafting-table guard and `/thirst filter give`).
-- **Recharging** (`filter.recharge`): a filter, `fragments` Eggshell Fragments (2) and one charcoal in the crafting
-  grid give the same filter back with `uses` more uses (6), never above `max-uses` (12); a filter already at the limit
-  can't be recharged. The fragments are an item from the Archaeology plugin (found in its nests) and are recognised by
-  a marker key in their data (`key`, default `archaeology:eggshell_fragment`) on top of their material (`item`,
-  default `PRISMARINE_SHARD`), so a plain item of that kind does nothing. Both settings must match the Archaeology
-  config (`nests.fragments.item`). The recipe is matched by material only, so `PitcherFilterListener.onPrepareRecharge`
-  decides the result: exactly one real filter, the right number of marked fragments, nothing else but charcoal.
-  Without the Archaeology plugin nobody can get fragments, so filters just wear out (admins have no give command in
-  Thirst for them; use `/nests fragment` in Archaeology). The point is demand: fragments cannot be farmed or made, so
-  clean water keeps needing trips to nests.
-- **Cauldrons** can't be filtered yet; fill a bottle or bucket first.
-
-### Design notes: Salmonella
-
-- **Stack state lives in the PDC** (`salmonella_stacks`, `salmonella_ticks_remaining`),
-  written by `ThirstManager` and owned by `SalmonellaService`. No task of its
-  own — `ThirstTickTask` drives `SalmonellaService.tick(player)` once per second
-  before the thirst-drain logic, so illness ticks even while the player is
-  otherwise thirst-exempt (Creative, etc.).
-- **Effect structure is code-defined, tuning is config.** `SalmonellaEffects`
-  maps a fixed 1→5 severity progression — Slowness I; +Weakness I; +Nausea I
-  (from `nausea-from-stack`); held; only the worst stack (5) amplifies Weakness
-  and Nausea to level II — that's the illness's shape, not a number to tweak.
-  Durations (`stack-durations-seconds`), decay interval, damage and cure are
-  all in `config.yml`. `max-stacks` = number of duration entries (capped at 5).
-  Nausea is the icon shown, matching the earlier decision to reuse the vanilla
-  Nausea indicator.
-- **`salmonella-chance` defaults to 0.65** (up from an initial 0.35) so the
-  illness actually shows up in normal play instead of needing many dirty
-  drinks before it lands.
-- **Nausea's amplifier doesn't do what you'd expect.** Vanilla's Nausea/Confusion
-  screen-warp intensity is identical at every level — the amplifier only
-  affects duration bookkeeping, not how much it shakes. So "tone down the
-  shake" can't be done by lowering the level; instead `nausea-from-stack`
-  (default 3) delays Nausea's *onset* — a single dirty-water infection (stack 1)
-  now only gives Slowness, no wobble at all.
-- **Decay is pure arithmetic** (`SalmonellaService.decay(...)` → `DecayStep`,
-  unit-tested): the timer counts down each tick; on expiry it drops one stack
-  and resets, or reports a cure at zero.
-- **Milk is a gamble, not a guarantee** (`PlayerItemConsumeEvent`, `MILK_BUCKET`)
-  — `milk-cure-chance` (default 0.3) is rolled, only while actually infected
-  (`SalmonellaService#isInfected`, so a healthy player's glass of milk is a
-  silent no-op, not a wasted roll); on a hit it removes `milk-cure-stacks`
-  (default 1). A miss plays a quiet "no effect" cue (`ENTITY_VILLAGER_NO`) so
-  it doesn't look like nothing happened. `cure-with-milk: false` disables
-  curing entirely.
-- **Severe-stack damage:** from `damage.from-stack` (default 4) the player takes
-  `damage.amount` every `damage.interval-seconds` as `DamageType.MAGIC`, with a
-  1-health floor **until** `damage.lethal-from-stack` (default 5), where the
-  floor drops to 0 and Salmonella can kill. Timer is in-memory (`forget` on quit).
-- **Neon-green HUD while infected** (the extra ask): `ThirstHudFormatter` colour
-  priority is *infected > critical thirst > normal*; `hud.color-infected`
-  (default `<color:#39FF14>`) plus a `☣<stacks>` suffix when
-  `hud.salmonella-indicator` is on. The boss-bar fallback goes
-  `BossBar.Color.GREEN`.
-- **Vomit** is cosmetic only (slime particles + burp) from `vomit-from-stack`,
-  ~1/4 seconds.
-- New config: `hud.color-infected`, `hud.salmonella-indicator`, and the
-  `salmonella.{milk-cure-stacks,vomit-from-stack}` + `salmonella.damage.*`
-  subsection.
-
-### Design notes: commands and permissions
-
-- **Two permissions instead of one.** Previously the entire `/thirst` tree sat
-  behind `thirst.admin.thirst`. Now `thirst.command.thirst` (default **true**)
-  covers only the no-target `get` forms — a player checking their own thirst
-  or Salmonella status — while `thirst.admin.thirst` (default op) is required
-  for `/thirst get <target>`, `set`, `reload`, and every `salmonella`
-  subcommand. Each Brigadier node carries its own `.requires(...)`, so the
-  permission split is enforced per-branch, not just at the top of the tree.
-  `/water` stays fully behind `thirst.admin.water` — it edits world state, not
-  personal status, so there's no self-service case for it.
-- **`/thirst salmonella get|set|cure`** exist mainly because testing Salmonella
-  without them meant chugging real dirty-water bottles to reach a given stack
-  count. `set` clamps into `[0, max-stacks]` and applies/clears effects
-  immediately (`SalmonellaService#setStacks`); `cure` (`#cureAll`) clears
-  unconditionally, bypassing `milk-cure-chance` and `milk-cure-stacks` — it's
-  an admin override, not a simulated milk bucket.
-- **`/thirst reload` now surfaces config-validation results.** `ThirstConfig`
-  has clamped bad values and logged warnings from the start, but only to the
-  console. `ThirstPlugin#loadPluginConfig` now also collects every warning
-  from that pass (`lastConfigWarnings()`), and the reload command prints the
-  count and each message straight to whoever ran it — an admin editing
-  `config.yml` sees typos immediately instead of needing console access.
-- **Left out on purpose:** rain trickle-drink and a water-quality wand with a
-  chunk-outline visualizer. Both are new features rather than polish, so they
-  were not built, and their config keys were removed rather than left unused.
-
-### Sharing the action bar with RealisticSeasons (or any plugin)
-
-`hud.external-segment` composes an extra bit of text — resolved from a
-PlaceholderAPI placeholder — onto the same action-bar line as the thirst bar, so
-the two plugins don't fight over the slot. Needs **PlaceholderAPI**; Thirst runs
-fine without it (the section is just ignored). Action-bar HUD modes only.
-
-For RealisticSeasons:
-
-1. In **RealisticSeasons'** config, turn its own action bar off:
-   `display → temperature → actionbar: false`.
-2. In **Thirst's** `config.yml`:
+1. In RealisticSeasons' config, turn its own action bar off: `display → temperature → actionbar: false`.
+2. In Thirst's `config.yml`:
    ```yaml
    hud:
      external-segment:
@@ -383,55 +64,37 @@ For RealisticSeasons:
        place-before: true
        separator: " <white>|</white> "
    ```
-3. `/thirst reload`.
+3. Run `/thirst reload`.
 
-Result: `22°C | [||||||----]`. Legacy colour codes (`&` or `§`) in the resolved
-placeholder are honoured; the separator is MiniMessage. Any PlaceholderAPI
-string works here, not just RealisticSeasons'.
-- **HUD colours / bar characters** go through MiniMessage, so `color-normal` /
-  `color-critical` accept hex and gradients, not just named colours.
-- Boss-bar mode uses the **Adventure `BossBar`** API (per-player, shown/hidden
-  via the player `Audience`), not the legacy `org.bukkit.boss` one.
+You get something like `22°C | [||||||----]`. Any PlaceholderAPI string works, not only RealisticSeasons'. Legacy colour codes in the placeholder are honoured, and the separator is MiniMessage. HUD colours and bar characters also use MiniMessage, so hex colours and gradients work.
 
-### Open questions (defaults chosen)
+Paper can't see another plugin's action-bar packets, so there's no automatic yielding. If Thirst is the only plugin using the action bar, set `actionbar-overwrite-others: true`. A plugin that depends on Thirst can also call `((ThirstPlugin) Bukkit.getPluginManager().getPlugin("Thirst")).hud().requestActionBarYield(player[, millis])` before sending its own.
 
-1. **Sprint gating** — *resolved:* at/below the critical threshold the sprint
-   speed bonus is neutralised (`disable-sprint-when-critical`,
-   `critical-sprint-speed-multiplier`). A true "can't sprint" isn't reachable
-   from the server — the client owns the sprint decision — so sprinting is made
-   pointless instead: no faster than walking. Normal walking is unaffected.
-2. **Hunger interaction** — thirst is fully independent of vanilla hunger for
-   now (no salty-food drain multiplier).
-3. **Salmonella cure** — currently item-only (milk bucket). Time-based recovery
-   while hydrated on fresh water is not implemented.
-4. **Scale** — SQLite is assumed sufficient. Revisit if chunk counts reach the
-   millions or multiple servers share the store.
+## Notes
 
-### Deviations from the original spec
+- Water quality is stored in SQLite (`water_quality.db` in the plugin folder), read into memory at startup and written in the background. Older databases are upgraded on load, and the old `clean` name still works as `fresh`.
+- The SQLite driver isn't bundled. `ThirstPluginLoader` fetches it into Paper's shared library cache. On Java 25 you may see a one-line native-access warning in the console the first time the database is used. It's harmless.
+- Thirst doesn't interact with vanilla hunger, so there's no extra drain from salty food.
+- Salmonella is cured with milk only. There's no recovery over time from drinking fresh water.
+- The vanilla Nausea effect shakes the screen the same at every level, so lowering the level wouldn't tone it down. `nausea-from-stack` delays when it starts instead.
+- Not built: a water-quality wand with a chunk outline, a rain trickle-drink, and a resource-pack HUD with droplet icons (`ACTIONBAR_RESOURCEPACK` falls back to text).
+- Cooldowns and speed changes are enforced on the server because the client decides whether you can sprint. At critical thirst a sprinting player gets a slowdown (`critical-sprint-speed-multiplier`, 0.75, about walking pace) and sprint-jumps are cancelled.
 
-1. **Drinking is bottle-based only.** Fill an empty glass bottle at a water
-   source block (or water cauldron) to receive a *Bottle of Fresh Water* or
-   *Bottle of Dirty Water*, tagged with the quality of the chunk it was filled
-   in. There is no "drink straight from the block" interaction.
+## Building
 
-2. **Water-quality command is `/water setchunk <fresh|neutral|dirty>`** — it
-   targets the single chunk the player is currently standing in (no coordinates,
-   no radius). `/water get` still reports the current chunk. `/water setregion
-   ...` is kept for bulk area painting. The spec's `/water set ... [radius]` form
-   is dropped in favour of `setchunk`.
+```bash
+./gradlew build
+```
 
-3. **Water quality has three states: `FRESH` / `NEUTRAL` / `DIRTY`** (spec had
-   two). `CLEAN` was renamed `FRESH` (`"clean"` still accepted). Unpainted
-   chunks: `NEUTRAL` if dry, `natural-water-quality` (DIRTY) if they contain
-   surface water (`water.detect-water`). Databases migrate on load.
+The jar is written to `build/libs/Thirst-<version>.jar` (Paper 26.1.2, Java 25). For another Paper line, pass the API and Java version:
 
-4. **Buckets are tagged too** (*Bucket of Fresh/Neutral/Dirty Water*), and rain
-   makes water dirty (`dirty-while-raining`, `rain-cauldron-always-dirty`).
+```bash
+./gradlew build -PpaperApi=26.3.build.236-stable -PapiVersion=26.3
+./gradlew build -PpaperApi=1.21.4-R0.1-SNAPSHOT -PapiVersion=1.21 -PjavaVersion=21
+```
 
-## License
+You need a JDK for Gradle's toolchain. Gradle will download one if it can, or you can point it at a local install with `org.gradle.java.installations.paths`. Building is for your own use only (see the licence).
 
-Thirst is free to use but not open source: you may run it on any server (including
-ones that take donations), but you may not redistribute, fork, modify-and-publish
-or sell it. See [LICENSE](LICENSE) for the full terms. Versions published before
-2026-11-25 (including v1.0.0) were released under the MIT License, and copies
-received under it keep that license.
+## Licence
+
+Thirst is free to use but not open source. You can run it on any server, including ones that take donations, but you can't redistribute, fork, modify and publish, or sell it. See [LICENSE](LICENSE) for the full terms. Versions published before 2026-11-25, including v1.0.0, were released under the MIT License, and copies received under it keep that licence.
