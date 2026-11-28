@@ -17,6 +17,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -42,6 +43,12 @@ public final class PitcherFilterListener implements Listener {
         this.filter = filter;
         this.containers = containers;
         this.config = config;
+    }
+
+    /** The filter's recipes show in the recipe book of every player who joins. */
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        filter.discoverFor(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.LOW)

@@ -124,6 +124,15 @@ public final class PitcherFilter {
             recipe.addIngredient(material);
         }
         Bukkit.addRecipe(recipe);
+        Bukkit.getOnlinePlayers().forEach(this::discoverFor);
+    }
+
+    /** Puts the filter and recharge recipes in a player's recipe book (a recipe that is not registered is skipped). */
+    public void discoverFor(org.bukkit.entity.Player player) {
+        if (config.get().filter().enabled()) {
+            player.discoverRecipe(recipeKey);
+            player.discoverRecipe(rechargeKey);
+        }
     }
 
     /** The recharge recipe: a pod (the filter), the fragments and a charcoal. The result is decided when it is crafted. */

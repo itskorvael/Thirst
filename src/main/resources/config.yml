@@ -231,8 +231,8 @@ filter:
     item: PRISMARINE_SHARD
     key: "archaeology:eggshell_fragment"
     fragments: 2
-    uses: 6
-    max-uses: 12
+    uses: 8
+    max-uses: 16
 
 # ─── Salmonella (dirty-water illness) ─────────────────────────────────────────
 # A stacking illness from drinking DIRTY water (chance = drinking.salmonella-chance).
